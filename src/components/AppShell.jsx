@@ -1,0 +1,117 @@
+import { LineChart, LogOut, Plus, Salad } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
+import DateControl from "./DateControl";
+
+const navigation = [
+  { to: "/", label: "Daily log", icon: Salad, end: true },
+  { to: "/trends", label: "Trends", icon: LineChart },
+];
+
+function Brand() {
+  return (
+    <div className="brand" aria-label="Mira Food Manager">
+      <span className="brand-mark" aria-hidden="true"><Salad size={21} strokeWidth={2} /></span>
+      <span className="brand-copy"><strong>Mira</strong><small>Food manager</small></span>
+    </div>
+  );
+}
+
+function Navigation({ mobile = false }) {
+  return (
+    <nav className={mobile ? "mobile-navigation" : "side-navigation"} aria-label="Food manager">
+      {navigation.map(({ to, label, icon: Icon, end }) => (
+        <NavLink key={to} to={to} end={end}>
+          <Icon size={mobile ? 20 : 18} strokeWidth={2} />
+          <span>{label}</span>
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
+export default function AppShell({ manager, onAdd, user, onLogout, children }) {
+  const location = useLocation();
+  const dailyRoute = location.pathname === "/";
+  const initialLetter = (user?.displayName || user?.email || "U").charAt(0).toUpperCase();
+
+  function openGlobalAdd() {
+    const date = dailyRoute ? manager.selectedDate : manager.today;
+    if (!dailyRoute) manager.selectDate(manager.today);
+    onAdd(null, date);
+  }
+
+  return (
+    <div className="app-frame">
+      <aside className="sidebar">
+        <Brand />
+        <Navigation />
+        <div className="sidebar-bottom">
+          <div className="sidebar-note">
+            <span className="sidebar-note__icon"><Salad size={18} /></span>
+            <span><strong>Patterns, not perfection</strong><small>Only what you actually log</small></span>
+          </div>
+
+          {user && (
+            <div className="user-profile">
+              <div className="user-profile__info">
+                <div className="user-profile__avatar">{initialLetter}</div>
+                <div className="user-profile__details">
+                  <span className="user-profile__name">{user.displayName || "Mira Member"}</span>
+                  <span className="user-profile__email">{user.email}</span>
+                </div>
+              </div>
+              <button
+                className="user-profile__signout"
+                onClick={onLogout}
+                title="Sign out"
+                aria-label="Sign out"
+              >
+                <LogOut size={16} />
+                <span>Sign out</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <div className="app-column">
+        <header className="topbar">
+          <div className="topbar-brand"><Brand /></div>
+          {dailyRoute ? (
+            <DateControl
+              date={manager.selectedDate}
+              today={manager.today}
+              earliestDate={manager.earliestDate}
+              onChange={manager.selectDate}
+              onPrevious={manager.previousDay}
+              onNext={manager.nextDay}
+            />
+          ) : <span className="topbar-context">Latest 14 days</span>}
+          <button className="button button--primary topbar-add" type="button" onClick={openGlobalAdd}>
+            <Plus size={18} strokeWidth={2.4} /> Log food
+          </button>
+          {user && (
+            <div className="topbar-user">
+              <div className="topbar-avatar" title={user.email}>{initialLetter}</div>
+              <button
+                className="topbar-signout-btn"
+                onClick={onLogout}
+                title="Sign out"
+                aria-label="Sign out"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          )}
+          {manager.loading && <span className="route-progress" aria-label="Loading food records" />}
+        </header>
+
+        <main className="main-content">{children}</main>
+        <Navigation mobile />
+        <button className="mobile-add" type="button" onClick={openGlobalAdd} aria-label="Log food">
+          <Plus size={24} strokeWidth={2.4} />
+        </button>
+      </div>
+    </div>
+  );
+}
