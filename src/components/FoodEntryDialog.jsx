@@ -79,18 +79,18 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
     >
       <form className="dialog-card food-form" onSubmit={submit} noValidate>
         <header className="dialog-header">
-          <div><span className="eyebrow">Fuel your day</span><h2>{entry ? "Edit food" : "Log food"}</h2><p>Record what you know. Macro details can stay at zero.</p></div>
+          <div><span className="eyebrow">Your food log</span><h2>{entry ? "Edit food" : "Log food"}</h2><p>Include the portion. Nutrition values are estimates unless you have packaging; unknown macros stored as zero make the analysis incomplete.</p></div>
           <button className="icon-button" type="button" onClick={onClose} disabled={busy} aria-label="Close food form"><X size={20} /></button>
         </header>
 
         <div className="form-body">
           <label className="field">
-            <span>Food or meal name</span>
+            <span>Food & portion</span>
             <input
               autoFocus
               required
               maxLength="120"
-              placeholder="Masala oats, paneer wrap…"
+              placeholder="2 idli with 1 bowl sambar…"
               value={form.name}
               onChange={(event) => update("name", event.target.value)}
               aria-invalid={attempted && !form.name.trim()}

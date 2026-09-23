@@ -27,6 +27,7 @@ export default function TrendsPage({ entries, goal, today }) {
           <span className="eyebrow">Patterns, not perfection</span>
           <h1>Nutrition trends</h1>
           <p>Your latest 14 days. Missing days stay visible instead of being counted as zero.</p>
+          <p>Targets are your saved references or starter values, not personalised medical recommendations.</p>
         </div>
       </header>
 
@@ -110,4 +111,3 @@ function SplitRow({ label, grams, share, tone }) {
 function compact(value) {
   return value >= 1000 ? `${(value / 1000).toFixed(1).replace(".0", "")}k` : String(value);
 }
-

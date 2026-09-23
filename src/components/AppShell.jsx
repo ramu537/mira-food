@@ -1,10 +1,11 @@
-import { LineChart, LogOut, Plus, Salad } from "lucide-react";
+import { LineChart, LogOut, Plus, Salad, Settings2 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import DateControl from "./DateControl";
 
 const navigation = [
   { to: "/", label: "Daily log", icon: Salad, end: true },
   { to: "/trends", label: "Trends", icon: LineChart },
+  { to: "/settings", label: "Goals & preferences", icon: Settings2 },
 ];
 
 function Brand() {
@@ -86,7 +87,7 @@ export default function AppShell({ manager, onAdd, user, onLogout, children }) {
               onPrevious={manager.previousDay}
               onNext={manager.nextDay}
             />
-          ) : <span className="topbar-context">Latest 14 days</span>}
+          ) : <span className="topbar-context">{location.pathname === "/settings" ? "Your food context" : "Latest 14 days"}</span>}
           <button className="button button--primary topbar-add" type="button" onClick={openGlobalAdd}>
             <Plus size={18} strokeWidth={2.4} /> Log food
           </button>

@@ -12,6 +12,7 @@ import Toast from "./components/Toast";
 import { useFoodManager } from "./hooks/useFoodManager";
 import DailyLogPage from "./pages/DailyLogPage";
 import TrendsPage from "./pages/TrendsPage";
+import FoodSettingsPage from "./pages/FoodSettingsPage";
 
 function loginMessage(error) {
   const code = error?.code || "";
@@ -82,6 +83,12 @@ export default function App() {
     }
   }
 
+  if (!authReady) return <LoadingState message="Connecting to your nutrition workspace..." />;
+  if (!user) return <LoginScreen onLogin={login} error={authError} loading={authBusy} />;
+  return <FoodWorkspace key={user.uid} user={user} onLogout={logout} />;
+}
+
+function FoodWorkspace({ user, onLogout }) {
   const manager = useFoodManager(user);
   const waterWriteLock = useRef(false);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
@@ -174,14 +181,6 @@ export default function App() {
     }
   }
 
-  if (!authReady) {
-    return <LoadingState message="Connecting to your nutrition workspace..." />;
-  }
-
-  if (!user) {
-    return <LoginScreen onLogin={login} error={authError} loading={authBusy} />;
-  }
-
   let content;
   if (!manager.ready && manager.loading) content = <LoadingState />;
   else if (!manager.ready && manager.loadError) content = <ErrorState message={manager.loadError} onRetry={manager.retry} />;
@@ -189,13 +188,17 @@ export default function App() {
     <Routes>
       <Route path="/" element={<DailyLogPage manager={manager} deletingId={deletingId} waterSaving={waterSaving} onAdd={openCreate} onEdit={openEdit} onDelete={deleteEntry} onEditGoal={() => setGoalDialogOpen(true)} onWaterChange={changeWater} />} />
       <Route path="/trends" element={<TrendsPage entries={manager.entries} goal={manager.goal} today={manager.today} />} />
+      <Route path="/settings" element={<FoodSettingsPage onSave={manager.actions.saveProfile} onEditTargets={() => setGoalDialogOpen(true)} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 
   return (
     <>
-      <AppShell manager={manager} onAdd={openCreate} user={user} onLogout={logout}>{content}</AppShell>
+      <AppShell manager={manager} onAdd={openCreate} user={user} onLogout={onLogout}>
+        {manager.ready && manager.loadError && <div className="food-refresh-warning" role="alert"><p>Food records could not be refreshed. The log and trends may be out of date.</p><button className="button button--secondary" type="button" disabled={manager.loading} onClick={manager.retry}>{manager.loading ? "Refreshing…" : "Refresh records"}</button></div>}
+        {content}
+      </AppShell>
       <FoodEntryDialog open={entryDialogOpen} entry={editingEntry} date={initialDate || manager.selectedDate} initialMeal={initialMeal} earliestDate={manager.earliestDate} today={manager.today} busy={saving} onClose={closeEntryDialog} onSave={saveEntry} />
       <GoalDialog open={goalDialogOpen} goal={manager.goal} busy={saving} onClose={() => { if (!saving) setGoalDialogOpen(false); }} onSave={saveGoal} />
       <Toast toast={toast} onClose={closeToast} />

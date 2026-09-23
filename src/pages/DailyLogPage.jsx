@@ -1,6 +1,7 @@
 import { Droplets, Pencil, Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
-import CalorieOrbit from "../components/CalorieOrbit";
+import FoodIntelligence from "../components/FoodIntelligence";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FoodRow from "../components/FoodRow";
 import MealIcon from "../components/MealIcon";
@@ -29,18 +30,22 @@ export default function DailyLogPage({ manager, deletingId, waterSaving, onAdd, 
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack food-daily-page">
       <header className="page-heading">
         <div>
-          <span className="eyebrow">Eat with awareness</span>
+          <span className="eyebrow">Your daily food companion</span>
           <h1>{manager.selectedDate === manager.today ? "Today’s food" : "Food log"}</h1>
           <p>{fullDate(manager.selectedDate, manager.selectedDate !== manager.today)} · {dayEntries.length} {dayEntries.length === 1 ? "item" : "items"} across {mealsLogged} {mealsLogged === 1 ? "meal" : "meals"}</p>
         </div>
-        <button className="button button--secondary" type="button" onClick={onEditGoal}><Pencil size={16} /> Edit targets</button>
+        <Link className="button button--secondary" to="/settings"><Pencil size={16} /> Goals & preferences</Link>
       </header>
 
+      <FoodIntelligence manager={manager} />
+
+      <details className="food-target-details"><summary>Numeric references & water <span>{manager.water} glasses recorded</span></summary>
+      <p>These are saved references or app starter values, not prescribed needs. Medical fluid and nutrition instructions take priority.</p>
+      <button className="food-text-button" type="button" onClick={onEditGoal}><Pencil size={15} />Edit numeric targets</button>
       <section className="daily-overview">
-        <CalorieOrbit calories={totals.calories} goal={manager.goal.calories} />
         <article className="panel macro-card">
           <header className="panel-header"><div><span className="eyebrow">Daily balance</span><h2>Macros</h2></div></header>
           <div className="macro-list">
@@ -66,6 +71,7 @@ export default function DailyLogPage({ manager, deletingId, waterSaving, onAdd, 
           <p>Tap the current glass again to subtract one.</p>
         </article>
       </section>
+      </details>
 
       <section className="meal-grid" aria-label="Meals">
         {mealTypes.map((meal) => {

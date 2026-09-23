@@ -1,6 +1,11 @@
 import { apiRequest } from "./client";
 
 export const foodApi = {
+  analyze(date) {
+    return apiRequest(`/food/analysis?${new URLSearchParams({ date })}`);
+  },
+  getProfile() { return apiRequest("/food/profile"); },
+  updateProfile(profile) { return apiRequest("/food/profile", { method: "PUT", body: JSON.stringify(profile) }); },
   listEntries(start, end) {
     return apiRequest(`/food/entries?${new URLSearchParams({ start, end })}`);
   },
@@ -32,4 +37,3 @@ export const foodApi = {
     });
   },
 };
-

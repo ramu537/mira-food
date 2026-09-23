@@ -8,7 +8,7 @@ export default function GoalDialog({ open, goal, busy, onClose, onSave }) {
 
   useEffect(() => {
     if (open) { setForm(goal); setAttempted(false); }
-  }, [goal, open]);
+  }, [open]); // Snapshot only when opened; background MCP refreshes must not erase an in-progress form.
 
   useEffect(() => {
     const dialog = ref.current;
