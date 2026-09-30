@@ -5,6 +5,7 @@ import { formatMacro } from "../lib/nutrition";
 export default function FoodRow({ entry, onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const macrosKnown = [entry.protein, entry.carbs, entry.fat].some((value) => Number(value) > 0);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -17,7 +18,7 @@ export default function FoodRow({ entry, onEdit, onDelete }) {
     <div className="food-row">
       <button className="food-row__main" type="button" onClick={() => onEdit(entry)}>
         <strong>{entry.name}</strong>
-        <small>P {formatMacro(entry.protein)} · C {formatMacro(entry.carbs)} · F {formatMacro(entry.fat)}</small>
+        <small>{macrosKnown ? `P ${formatMacro(entry.protein)} · C ${formatMacro(entry.carbs)} · F ${formatMacro(entry.fat)}` : "Macros not added"}</small>
       </button>
       <strong className="food-row__calories">{Number(entry.calories).toLocaleString("en-IN")} <small>kcal</small></strong>
       <div className="row-menu" ref={ref}>
@@ -34,4 +35,3 @@ export default function FoodRow({ entry, onEdit, onDelete }) {
     </div>
   );
 }
-

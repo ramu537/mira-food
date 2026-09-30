@@ -1,11 +1,10 @@
-import { LineChart, LogOut, Plus, Salad, Settings2 } from "lucide-react";
+import { LineChart, LogOut, Plus, Salad, Settings2, Sparkles } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import DateControl from "./DateControl";
 
 const navigation = [
   { to: "/", label: "Daily log", icon: Salad, end: true },
   { to: "/trends", label: "Trends", icon: LineChart },
-  { to: "/settings", label: "Goals & preferences", icon: Settings2 },
 ];
 
 function Brand() {
@@ -30,7 +29,7 @@ function Navigation({ mobile = false }) {
   );
 }
 
-export default function AppShell({ manager, onAdd, user, onLogout, children }) {
+export default function AppShell({ manager, onAdd, onOpenIntelligence, user, onLogout, children }) {
   const location = useLocation();
   const dailyRoute = location.pathname === "/";
   const initialLetter = (user?.displayName || user?.email || "U").charAt(0).toUpperCase();
@@ -88,6 +87,8 @@ export default function AppShell({ manager, onAdd, user, onLogout, children }) {
               onNext={manager.nextDay}
             />
           ) : <span className="topbar-context">{location.pathname === "/settings" ? "Your food context" : "Latest 14 days"}</span>}
+          <button className="icon-button topbar-intelligence" type="button" onClick={onOpenIntelligence} aria-label="Open food intelligence" title="Food intelligence"><Sparkles size={18} /></button>
+          <NavLink className={({ isActive }) => isActive ? "icon-button topbar-settings is-active" : "icon-button topbar-settings"} to="/settings" aria-label="Goals and preferences" title="Goals & preferences"><Settings2 size={18} /></NavLink>
           <button className="button button--primary topbar-add" type="button" onClick={openGlobalAdd}>
             <Plus size={18} strokeWidth={2.4} /> Log food
           </button>
