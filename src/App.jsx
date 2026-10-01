@@ -10,6 +10,8 @@ import GoalDialog from "./components/GoalDialog";
 import LoginScreen from "./components/LoginScreen";
 import { ErrorState, LoadingState } from "./components/PageState";
 import Toast from "./components/Toast";
+import AiFoodCaptureModal from "./components/AiFoodCaptureModal";
+import AiMemorySearchDialog from "./components/AiMemorySearchDialog";
 import { useFoodManager } from "./hooks/useFoodManager";
 import DailyLogPage from "./pages/DailyLogPage";
 import TrendsPage from "./pages/TrendsPage";
@@ -95,6 +97,8 @@ function FoodWorkspace({ user, onLogout }) {
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [intelligenceOpen, setIntelligenceOpen] = useState(false);
+  const [aiCaptureOpen, setAiCaptureOpen] = useState(false);
+  const [aiSearchOpen, setAiSearchOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [initialMeal, setInitialMeal] = useState(null);
   const [initialDate, setInitialDate] = useState(null);
@@ -103,6 +107,17 @@ function FoodWorkspace({ user, onLogout }) {
   const [deletingId, setDeletingId] = useState(null);
   const [toast, setToast] = useState(null);
   const closeToast = useCallback(() => setToast(null), []);
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setAiSearchOpen((prev) => !prev);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   function openCreate(meal = null, date = null) {
     setEditingEntry(null);
@@ -199,13 +214,35 @@ function FoodWorkspace({ user, onLogout }) {
 
   return (
     <>
-      <AppShell manager={manager} onAdd={openCreate} onOpenIntelligence={() => setIntelligenceOpen(true)} user={user} onLogout={onLogout}>
+      <AppShell
+        manager={manager}
+        onAdd={openCreate}
+        onOpenIntelligence={() => setIntelligenceOpen(true)}
+        onOpenAiCapture={() => setAiCaptureOpen(true)}
+        onOpenAiSearch={() => setAiSearchOpen(true)}
+        user={user}
+        onLogout={onLogout}
+      >
         {manager.ready && manager.loadError && <div className="food-refresh-warning" role="alert"><p>Food records could not be refreshed. The log and trends may be out of date.</p><button className="button button--secondary" type="button" disabled={manager.loading} onClick={manager.retry}>{manager.loading ? "Refreshing…" : "Refresh records"}</button></div>}
         {content}
       </AppShell>
       <FoodEntryDialog open={entryDialogOpen} entry={editingEntry} date={initialDate || manager.selectedDate} initialMeal={initialMeal} earliestDate={manager.earliestDate} today={manager.today} busy={saving} onClose={closeEntryDialog} onSave={saveEntry} />
       <GoalDialog open={goalDialogOpen} goal={manager.goal} busy={saving} onClose={() => { if (!saving) setGoalDialogOpen(false); }} onSave={saveGoal} />
       <FoodIntelligenceDialog open={intelligenceOpen} manager={manager} onClose={() => setIntelligenceOpen(false)} />
+      <AiFoodCaptureModal
+        open={aiCaptureOpen}
+        initialDate={manager.selectedDate}
+        onClose={() => setAiCaptureOpen(false)}
+        onSuccess={(msg) => {
+          manager.retry();
+          setToast({ tone: "success", message: msg });
+        }}
+      />
+      <AiMemorySearchDialog
+        open={aiSearchOpen}
+        onClose={() => setAiSearchOpen(false)}
+        onSelectDate={(date) => manager.selectDate(date)}
+      />
       <Toast toast={toast} onClose={closeToast} />
     </>
   );

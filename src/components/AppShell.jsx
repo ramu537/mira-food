@@ -1,4 +1,4 @@
-import { LineChart, LogOut, Plus, Salad, Settings2, Sparkles } from "lucide-react";
+import { Camera, LineChart, LogOut, Plus, Salad, Search, Settings2, Sparkles } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import DateControl from "./DateControl";
 
@@ -29,7 +29,7 @@ function Navigation({ mobile = false }) {
   );
 }
 
-export default function AppShell({ manager, onAdd, onOpenIntelligence, user, onLogout, children }) {
+export default function AppShell({ manager, onAdd, onOpenIntelligence, onOpenAiCapture, onOpenAiSearch, user, onLogout, children }) {
   const location = useLocation();
   const dailyRoute = location.pathname === "/";
   const initialLetter = (user?.displayName || user?.email || "U").charAt(0).toUpperCase();
@@ -87,7 +87,11 @@ export default function AppShell({ manager, onAdd, onOpenIntelligence, user, onL
               onNext={manager.nextDay}
             />
           ) : <span className="topbar-context">{location.pathname === "/settings" ? "Your food context" : "Latest 14 days"}</span>}
+          <button className="icon-button" type="button" onClick={onOpenAiSearch} aria-label="Search memory" title="AI Vector Memory Search (Ctrl+K)"><Search size={18} /></button>
           <button className="icon-button topbar-intelligence" type="button" onClick={onOpenIntelligence} aria-label="Open food intelligence" title="Food intelligence"><Sparkles size={18} /></button>
+          <button className="button button--ghost" type="button" onClick={onOpenAiCapture} aria-label="AI Food Scan" title="Snap meal or describe with AI" style={{ gap: "0.375rem", display: "inline-flex", alignItems: "center" }}>
+            <Camera size={17} /> <span>AI Scan</span>
+          </button>
           <NavLink className={({ isActive }) => isActive ? "icon-button topbar-settings is-active" : "icon-button topbar-settings"} to="/settings" aria-label="Goals and preferences" title="Goals & preferences"><Settings2 size={18} /></NavLink>
           <button className="button button--primary topbar-add" type="button" onClick={openGlobalAdd}>
             <Plus size={18} strokeWidth={2.4} /> Log food
@@ -110,9 +114,14 @@ export default function AppShell({ manager, onAdd, onOpenIntelligence, user, onL
 
         <main className="main-content">{children}</main>
         <Navigation mobile />
-        <button className="mobile-add" type="button" onClick={openGlobalAdd} aria-label="Log food">
-          <Plus size={24} strokeWidth={2.4} />
-        </button>
+        <div style={{ position: "fixed", bottom: "1.25rem", right: "1.25rem", display: "flex", gap: "0.75rem", zIndex: 40 }} className="mobile-only-actions">
+          <button className="mobile-add" type="button" onClick={onOpenAiCapture} aria-label="AI Food Scan" style={{ background: "var(--surface-raised)", color: "var(--accent-strong)", border: "1px solid var(--border-default)" }}>
+            <Camera size={22} strokeWidth={2.2} />
+          </button>
+          <button className="mobile-add" type="button" onClick={openGlobalAdd} aria-label="Log food">
+            <Plus size={24} strokeWidth={2.4} />
+          </button>
+        </div>
       </div>
     </div>
   );
