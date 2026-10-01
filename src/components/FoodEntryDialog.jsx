@@ -4,7 +4,7 @@ import { mealTypes } from "../lib/nutrition";
 import MealIcon from "./MealIcon";
 
 function blankEntry(date, meal) {
-  return { name: "", meal: meal || "BREAKFAST", calories: "", protein: "", carbs: "", fat: "", loggedOn: date };
+  return { name: "", meal: meal || "BREAKFAST", calories: "", protein: "", carbs: "", fat: "", loggedOn: date, nutritionEstimated: true, estimationNote: "" };
 }
 
 function validMacro(value) {
@@ -29,6 +29,8 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
       carbs: String(entry.carbs),
       fat: String(entry.fat),
       loggedOn: entry.loggedOn,
+      nutritionEstimated: Boolean(entry.nutritionEstimated),
+      estimationNote: entry.estimationNote || "",
     } : blankEntry(date, initialMeal));
     setAttempted(false);
   }, [date, entry, initialMeal, open]);
@@ -67,6 +69,8 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
       carbs: Number(form.carbs || 0),
       fat: Number(form.fat || 0),
       loggedOn: form.loggedOn,
+      nutritionEstimated: form.nutritionEstimated,
+      estimationNote: form.nutritionEstimated ? form.estimationNote.trim() || null : null,
     });
   }
 
@@ -159,6 +163,14 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
             </div>
             {attempted && ![form.protein, form.carbs, form.fat].every(validMacro) && <small className="field-error">Use zero or a positive value with up to two decimal places.</small>}
           </fieldset>
+          <label className="food-estimate-toggle">
+            <input type="checkbox" checked={form.nutritionEstimated} onChange={(event) => update("nutritionEstimated", event.target.checked)} />
+            <span>Nutrition or portion is estimated</span>
+          </label>
+          {form.nutritionEstimated && <label className="field">
+            <span>Estimate details <small>Optional</small></span>
+            <input maxLength="500" placeholder="Assumed one medium bowl; nutrition estimated" value={form.estimationNote} onChange={(event) => update("estimationNote", event.target.value)} />
+          </label>}
         </div>
 
         <footer className="dialog-actions form-actions">

@@ -25,7 +25,16 @@ test("daily groups retain the four meal order and their entries", () => {
 
 test("quick payload trims food and safely defaults unknown macros to zero", () => {
   assert.deepEqual(quickFoodPayload({ name: "  Dosa with chutney ", meal: "DINNER", calories: "410", protein: "", carbs: "", fat: "" }, "2026-09-29"),
-    { name: "Dosa with chutney", meal: "DINNER", calories: 410, protein: 0, carbs: 0, fat: 0, loggedOn: "2026-09-29" });
+    { name: "Dosa with chutney", meal: "DINNER", calories: 410, protein: 0, carbs: 0, fat: 0, loggedOn: "2026-09-29", nutritionEstimated: true, estimationNote: null });
   assert.throws(() => quickFoodPayload({ name: "Tea", meal: "SNACK", calories: "" }, "2026-09-29"), /Calories/);
   assert.throws(() => quickFoodPayload({ name: "Tea", meal: "SNACK", calories: "40", protein: "1.234" }, "2026-09-29"), /two decimal places/);
+});
+
+test("reusing food preserves estimate assumptions and measured values can clear them", () => {
+  const template = recentFoodTemplates([{ ...entries[0], nutritionEstimated: true, estimationNote: "Assumed 2 medium idli" }])[0];
+  const reused = quickFoodPayload(template, "2026-09-29");
+  assert.equal(reused.nutritionEstimated, true);
+  assert.equal(reused.estimationNote, "Assumed 2 medium idli");
+  const measured = quickFoodPayload({ ...template, nutritionEstimated: false }, "2026-09-29");
+  assert.equal(measured.estimationNote, null);
 });

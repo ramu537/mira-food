@@ -18,6 +18,7 @@ export default function FoodRow({ entry, onEdit, onDelete }) {
     <div className="food-row">
       <button className="food-row__main" type="button" onClick={() => onEdit(entry)}>
         <strong>{entry.name}</strong>
+        {entry.nutritionEstimated && <small className="food-row__estimate" title={entry.estimationNote || "Estimated nutrition or portion; tap to edit"}>Estimated · tap to edit</small>}
         <small>{macrosKnown ? `P ${formatMacro(entry.protein)} · C ${formatMacro(entry.carbs)} · F ${formatMacro(entry.fat)}` : "Macros not added"}</small>
       </button>
       <strong className="food-row__calories">{Number(entry.calories).toLocaleString("en-IN")} <small>kcal</small></strong>

@@ -32,5 +32,7 @@ export function quickFoodPayload(form, loggedOn) {
   if (!mealTypes.some((item) => item.value === meal)) throw new Error("Choose a meal.");
   const invalidMacro = macros.some((value, index) => !Number.isFinite(value) || value < 0 || value > 99999.99 || !/^\d*(?:\.\d{0,2})?$/.test(rawMacros[index]));
   if (invalidMacro) throw new Error("Macros must be positive numbers with up to two decimal places.");
-  return { name, calories, meal, protein: macros[0], carbs: macros[1], fat: macros[2], loggedOn };
+  const nutritionEstimated = form.nutritionEstimated !== false;
+  return { name, calories, meal, protein: macros[0], carbs: macros[1], fat: macros[2], loggedOn,
+    nutritionEstimated, estimationNote: nutritionEstimated ? String(form.estimationNote || "").trim() || null : null };
 }
