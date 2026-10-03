@@ -82,6 +82,7 @@ export function trendSummary(entries, endDate, goal, days = 14) {
 }
 
 export function formatMacro(value) {
-  return Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 1 });
+  if (value == null) return "—";
+  return Number(value).toLocaleString("en-IN", { maximumFractionDigits: 1 });
 }
 

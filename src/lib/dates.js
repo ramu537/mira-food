@@ -4,9 +4,9 @@ export function localDateKey(date = new Date()) {
 }
 
 export function shiftDate(dateKey, days) {
-  const date = new Date(`${dateKey}T12:00:00`);
-  date.setDate(date.getDate() + days);
-  return localDateKey(date);
+  const date = new Date(`${dateKey}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 export function dateRange(endDate, count) {

@@ -14,6 +14,6 @@ export const memoryApi = {
     });
   },
   getSource: (domain, entityId) => {
-    return apiRequest(`/memory/source/${encodeURIComponent(domain)}/${encodeURIComponent(entityId)}`);
+    return apiRequest(`/memory/sources/${encodeURIComponent(domain)}/${encodeURIComponent(entityId)}`);
   },
 };

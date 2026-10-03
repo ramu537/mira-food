@@ -5,6 +5,10 @@ import { defaultGoal } from "../lib/nutrition";
 import { dateInZone } from "../lib/foodProfile";
 
 export function useFoodManager(user = null) {
+  const uid = user?.uid || null;
+  const activeUser = useRef(uid);
+  activeUser.current = uid;
+  const [owner, setOwner] = useState(null);
   const [zone, setZone] = useState("Asia/Kolkata");
   const [now, setNow] = useState(() => new Date());
   const today = dateInZone(now, zone);
@@ -37,36 +41,42 @@ export function useFoodManager(user = null) {
         foodApi.listEntries(earliestDate, today), foodApi.getGoal(), foodApi.listWater(earliestDate, today),
         foodApi.getProfile().catch(() => null),
       ]);
-      if (!live.current || sequence !== reads.current) return;
+      if (!live.current || sequence !== reads.current || activeUser.current !== uid) return;
+      setOwner(uid);
       setEntries(Array.isArray(nextEntries) ? nextEntries : []);
       setGoal(nextGoal || defaultGoal);
       setWaterByDate(Object.fromEntries((water || []).map((item) => [item.date, item.glasses])));
       if (profile) setZone(profile.timeZone || "Asia/Kolkata");
       setLoadError(""); setReady(true); setRevision((value) => value + 1);
     } catch (error) {
-      if (live.current && sequence === reads.current) {
+      if (live.current && sequence === reads.current && activeUser.current === uid) {
         setLoadError(error.message || "Your food records could not be refreshed.");
         // A failed refresh must not leave old advice looking current, especially after an external write.
         analysisReads.current += 1;
         setAnalysis(null); setAnalysisLoading(false);
         setAnalysisError("Refresh failed. Retry to read your current records and preferences.");
       }
-    } finally { if (live.current && sequence === reads.current) setLoading(false); }
+    } finally { if (live.current && sequence === reads.current && activeUser.current === uid) setLoading(false); }
   }, [user?.uid, earliestDate, today]);
 
-  const refreshAnalysis = useCallback(async () => {
+  const refreshAnalysis = useCallback(async (regenerate = false) => {
     if (!user || writeLock.current) return;
     const sequence = ++analysisReads.current;
     setAnalysisLoading(true); setAnalysisError("");
     try {
-      const result = await foodApi.analyze(selectedDate);
-      if (!live.current || sequence !== analysisReads.current) return;
+      const result = await foodApi.analyze(selectedDate, regenerate === true);
+      if (!live.current || sequence !== analysisReads.current || activeUser.current !== uid) return;
       setAnalysis(result); setZone(result.timeZone || "Asia/Kolkata");
     } catch (error) {
-      if (live.current && sequence === analysisReads.current) { setAnalysis(null); setAnalysisError(error.message); }
-    } finally { if (live.current && sequence === analysisReads.current) setAnalysisLoading(false); }
+      if (live.current && sequence === analysisReads.current && activeUser.current === uid) { setAnalysis(null); setAnalysisError(error.message); }
+    } finally { if (live.current && sequence === analysisReads.current && activeUser.current === uid) setAnalysisLoading(false); }
   }, [user?.uid, selectedDate]);
 
+  useEffect(() => {
+    reads.current++; analysisReads.current++;
+    setEntries([]); setAnalysis(null); setOwner(null); setReady(false);
+    setGoal(defaultGoal); setWaterByDate({}); setLoadError(""); setAnalysisError("");
+  }, [uid]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { void refreshAnalysis(); }, [refreshAnalysis, revision]);
   useEffect(() => {
@@ -79,16 +89,18 @@ export function useFoodManager(user = null) {
   }, [load]);
 
   async function write(operation, apply) {
+    const writeOwner = uid;
+    if (!writeOwner || activeUser.current !== writeOwner) throw new Error("Sign in again before saving.");
     if (writeLock.current) throw new Error("Another food change is saving. Please wait.");
     writeLock.current = true; reads.current += 1; analysisReads.current += 1;
     setLoading(false); setAnalysis(null); setAnalysisLoading(true);
     try {
       const result = await operation();
-      if (live.current) apply(result);
+      if (live.current && activeUser.current === writeOwner) apply(result);
       return result;
     } finally {
       writeLock.current = false;
-      if (live.current) setRevision((value) => value + 1);
+      if (live.current && activeUser.current === writeOwner) setRevision((value) => value + 1);
     }
   }
   const actions = {
@@ -105,9 +117,9 @@ export function useFoodManager(user = null) {
   };
   function selectDate(date) { setSelectedDate(date < earliestDate ? earliestDate : date > today ? today : date); }
   return {
-    today, earliestDate, selectedDate, selectDate, entries, goal, water: waterByDate[selectedDate] || 0,
-    loading, ready, loadError, retry: load, actions,
-    analysis: analysis?.date === selectedDate ? analysis : null, analysisLoading, analysisError, refreshAnalysis,
+    today, earliestDate, selectedDate, selectDate, entries: owner === uid ? entries : [], goal, water: owner === uid ? waterByDate[selectedDate] || 0 : 0,
+    loading, ready: ready && owner === uid, loadError, retry: load, actions,
+    analysis: owner === uid && analysis?.date === selectedDate ? analysis : null, analysisLoading, analysisError, refreshAnalysis,
     canGoPrevious: selectedDate > earliestDate, canGoNext: selectedDate < today,
     previousDay: () => selectDate(shiftDate(selectedDate, -1)), nextDay: () => selectDate(shiftDate(selectedDate, 1)),
   };

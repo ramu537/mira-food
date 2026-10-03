@@ -5,7 +5,7 @@ import { formatMacro } from "../lib/nutrition";
 export default function FoodRow({ entry, onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const macrosKnown = [entry.protein, entry.carbs, entry.fat].some((value) => Number(value) > 0);
+  const macrosKnown = [entry.protein, entry.carbs, entry.fat].some((value) => value != null);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -18,6 +18,7 @@ export default function FoodRow({ entry, onEdit, onDelete }) {
     <div className="food-row">
       <button className="food-row__main" type="button" onClick={() => onEdit(entry)}>
         <strong>{entry.name}</strong>
+        {entry.source && entry.source !== "UNSPECIFIED" && <small className="food-row__estimate">{({ MCP: "Logged by your assistant", AI_CAPTURE: "AI capture", MANUAL: "Manually logged" })[entry.source] || entry.source}</small>}
         {entry.nutritionEstimated && <small className="food-row__estimate" title={entry.estimationNote || "Estimated nutrition or portion; tap to edit"}>Estimated · tap to edit</small>}
         <small>{macrosKnown ? `P ${formatMacro(entry.protein)} · C ${formatMacro(entry.carbs)} · F ${formatMacro(entry.fat)}` : "Macros not added"}</small>
       </button>

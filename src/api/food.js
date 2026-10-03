@@ -1,8 +1,16 @@
 import { apiRequest } from "./client";
 
 export const foodApi = {
-  analyze(date) {
-    return apiRequest(`/food/analysis?${new URLSearchParams({ date })}`);
+  async analyze(date, regenerate = false) {
+    const [calculated, intelligence] = await Promise.allSettled([
+      apiRequest(`/food/analysis?${new URLSearchParams({ date })}`),
+      regenerate ? apiRequest("/food/intelligence/refresh", { method: "POST", body: JSON.stringify({ date }) })
+        : apiRequest(`/food/intelligence?${new URLSearchParams({ date })}`),
+    ]);
+    if (calculated.status === "rejected") throw calculated.reason;
+    return { ...calculated.value, intelligence: intelligence.status === "fulfilled" ? intelligence.value : {
+      status: "UNAVAILABLE", providerMessage: intelligence.reason?.message || "AI interpretation could not be loaded."
+    }};
   },
   getProfile() { return apiRequest("/food/profile"); },
   updateProfile(profile) { return apiRequest("/food/profile", { method: "PUT", body: JSON.stringify(profile) }); },

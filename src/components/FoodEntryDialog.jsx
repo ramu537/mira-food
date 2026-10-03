@@ -25,9 +25,9 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
       name: entry.name,
       meal: entry.meal,
       calories: String(entry.calories),
-      protein: String(entry.protein),
-      carbs: String(entry.carbs),
-      fat: String(entry.fat),
+      protein: entry.protein == null ? '' : String(entry.protein),
+      carbs: entry.carbs == null ? '' : String(entry.carbs),
+      fat: entry.fat == null ? '' : String(entry.fat),
       loggedOn: entry.loggedOn,
       nutritionEstimated: Boolean(entry.nutritionEstimated),
       estimationNote: entry.estimationNote || "",
@@ -65,9 +65,9 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
       name: form.name.trim(),
       meal: form.meal,
       calories: Number(form.calories),
-      protein: Number(form.protein || 0),
-      carbs: Number(form.carbs || 0),
-      fat: Number(form.fat || 0),
+      protein: form.protein === '' ? null : Number(form.protein),
+      carbs: form.carbs === '' ? null : Number(form.carbs),
+      fat: form.fat === '' ? null : Number(form.fat),
       loggedOn: form.loggedOn,
       nutritionEstimated: form.nutritionEstimated,
       estimationNote: form.nutritionEstimated ? form.estimationNote.trim() || null : null,
@@ -83,7 +83,7 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
     >
       <form className="dialog-card food-form" onSubmit={submit} noValidate>
         <header className="dialog-header">
-          <div><span className="eyebrow">Your food log</span><h2>{entry ? "Edit food" : "Log food"}</h2><p>Include the portion. Nutrition values are estimates unless you have packaging; unknown macros stored as zero make the analysis incomplete.</p></div>
+          <div><span className="eyebrow">Your food log</span><h2>{entry ? "Edit food" : "Log food"}</h2><p>Include the portion. Nutrition values are estimates unless you have packaging; Leave unknown macros blank; they are stored as unknown, not zero.</p></div>
           <button className="icon-button" type="button" onClick={onClose} disabled={busy} aria-label="Close food form"><X size={20} /></button>
         </header>
 
@@ -157,7 +157,7 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
               ].map(([key, label]) => (
                 <label className="field" key={key}>
                   <span>{label}</span>
-                  <input type="number" inputMode="decimal" min="0" max="99999.99" step="0.01" placeholder="0" value={form[key]} onChange={(event) => update(key, event.target.value)} aria-invalid={attempted && !validMacro(form[key])} />
+                  <input type="number" inputMode="decimal" min="0" max="99999.99" step="0.01" placeholder="Unknown" value={form[key]} onChange={(event) => update(key, event.target.value)} aria-invalid={attempted && !validMacro(form[key])} />
                 </label>
               ))}
             </div>

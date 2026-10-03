@@ -1,13 +1,15 @@
 import { apiBlobRequest, apiRequest } from "./client";
 
+import { normalizeCapture } from "../lib/capture.js";
+
 export const captureApi = {
   create: (capture) => apiRequest("/captures", {
     method: "POST",
-    body: JSON.stringify(capture),
+    body: JSON.stringify(normalizeCapture(capture)),
   }),
   createWithImages: (capture, files) => {
     const form = new FormData();
-    form.append("capture", new Blob([JSON.stringify(capture)], { type: "application/json" }));
+    form.append("capture", new Blob([JSON.stringify(normalizeCapture(capture))], { type: "application/json" }));
     files.forEach((file) => form.append("files", file, file.name));
     return apiRequest("/captures/with-attachments", { method: "POST", body: form });
   },

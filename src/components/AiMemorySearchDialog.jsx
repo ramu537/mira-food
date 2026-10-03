@@ -18,6 +18,7 @@ export default function AiMemorySearchDialog({ open, onClose, onSelectDate }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef(null);
+  const sequence = useRef(0);
 
   useEffect(() => {
     if (open) {
@@ -30,7 +31,9 @@ export default function AiMemorySearchDialog({ open, onClose, onSelectDate }) {
   }, [open]);
 
   useEffect(() => {
-    if (!query.trim()) {
+    const request = ++sequence.current;
+    if (!open || !query.trim()) {
+      setLoading(false);
       setResults([]);
       return;
     }
@@ -39,16 +42,16 @@ export default function AiMemorySearchDialog({ open, onClose, onSelectDate }) {
       setError("");
       try {
         const domains = selectedDomain === "ALL" ? undefined : [selectedDomain];
-        const res = await memoryApi.search({ query: query.trim(), domains, limit: 12 });
-        setResults(res?.results || []);
+        const res = await memoryApi.search({ query: query.trim(), domains, limit: 10 });
+        if (sequence.current === request) setResults(Array.isArray(res) ? res : res?.results || []);
       } catch (err) {
-        setError(err?.message || "Search failed.");
+        if (sequence.current === request) setError(err?.message || "Search failed.");
       } finally {
-        setLoading(false);
+        if (sequence.current === request) setLoading(false);
       }
     }, 300);
-    return () => clearTimeout(timer);
-  }, [query, selectedDomain]);
+    return () => { clearTimeout(timer); sequence.current++; };
+  }, [open, query, selectedDomain]);
 
   if (!open) return null;
 
@@ -68,7 +71,7 @@ export default function AiMemorySearchDialog({ open, onClose, onSelectDate }) {
               <Sparkles size={20} />
             </span>
             <h2 id="ai-search-dialog-title" style={{ fontSize: "1.125rem", fontWeight: 700 }}>
-              AI Vector Memory Search
+              Personal memory search
             </h2>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Close dialog">
@@ -119,9 +122,9 @@ export default function AiMemorySearchDialog({ open, onClose, onSelectDate }) {
           {!query.trim() && (
             <div style={{ textAlign: "center", padding: "2.5rem 1rem", color: "var(--text-tertiary)" }}>
               <Database size={32} style={{ margin: "0 auto 0.75rem", opacity: 0.5 }} />
-              <p style={{ fontWeight: 600, color: "var(--text-secondary)", marginBottom: "0.25rem" }}>Semantic Vector Search</p>
+              <p style={{ fontWeight: 600, color: "var(--text-secondary)", marginBottom: "0.25rem" }}>Personal memory search</p>
               <p style={{ fontSize: "0.8125rem", maxWidth: "26rem", margin: "0 auto" }}>
-                Search across all your logged meals, recipes, and notes using natural language powered by Gemini 1536-dimensional embeddings.
+                Search across all your logged meals, recipes, and notes using natural language powered by semantic search when configured, with keyword search as a fallback.
               </p>
             </div>
           )}
@@ -132,11 +135,11 @@ export default function AiMemorySearchDialog({ open, onClose, onSelectDate }) {
             </div>
           )}
 
-          {results.map((res) => {
-            const dateStr = res.entityDate || res.createdAt?.slice(0, 10);
+          {results.map((res, index) => {
+            const dateStr = res.occurredAt?.slice(0, 10) || res.entityDate || res.createdAt?.slice(0, 10);
             return (
               <div
-                key={res.id || `${res.domain}-${res.entityId}`}
+                key={res.id || `${res.sourceType}-${res.sourceId}`}
                 style={{
                   background: "var(--surface-2)",
                   border: "1px solid var(--border-subtle)",
@@ -163,11 +166,11 @@ export default function AiMemorySearchDialog({ open, onClose, onSelectDate }) {
                         fontWeight: 700,
                         padding: "0.15rem 0.5rem",
                         borderRadius: "0.25rem",
-                        background: res.domain === "FOOD" ? "var(--accent-soft)" : "var(--border-subtle)",
-                        color: res.domain === "FOOD" ? "var(--accent-strong)" : "var(--text-primary)",
+                        background: res.sourceType === "FOOD" ? "var(--accent-soft)" : "var(--border-subtle)",
+                        color: res.sourceType === "FOOD" ? "var(--accent-strong)" : "var(--text-primary)",
                       }}
                     >
-                      {res.domain}
+                      {res.sourceType}
                     </span>
                     {dateStr && (
                       <span style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: 3 }}>
@@ -175,9 +178,9 @@ export default function AiMemorySearchDialog({ open, onClose, onSelectDate }) {
                       </span>
                     )}
                   </div>
-                  {res.similarityScore != null && (
+                  {res.score != null && (
                     <span style={{ fontSize: "0.6875rem", color: "var(--text-tertiary)", fontWeight: 600 }}>
-                      Match: {Math.round(res.similarityScore * 100)}%
+                      Relevance rank: {index + 1}
                     </span>
                   )}
                 </div>
