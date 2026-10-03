@@ -228,7 +228,7 @@ function FoodWorkspace({ user, onLogout }) {
       </AppShell>
       <FoodEntryDialog open={entryDialogOpen} entry={editingEntry} date={initialDate || manager.selectedDate} initialMeal={initialMeal} earliestDate={manager.earliestDate} today={manager.today} busy={saving} onClose={closeEntryDialog} onSave={saveEntry} />
       <GoalDialog open={goalDialogOpen} goal={manager.goal} busy={saving} onClose={() => { if (!saving) setGoalDialogOpen(false); }} onSave={saveGoal} />
-      <FoodIntelligenceDialog open={intelligenceOpen} manager={manager} onClose={() => setIntelligenceOpen(false)} />
+      <FoodIntelligenceDialog userId={user.uid} open={intelligenceOpen} manager={manager} onClose={() => setIntelligenceOpen(false)} />
       <AiFoodCaptureModal
         open={aiCaptureOpen}
         initialDate={manager.selectedDate}
