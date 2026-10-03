@@ -1,3 +1,4 @@
+import FloatingAssistant from "./components/FloatingAssistant";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
@@ -243,6 +244,7 @@ function FoodWorkspace({ user, onLogout }) {
         onClose={() => setAiSearchOpen(false)}
         onSelectDate={(date) => manager.selectDate(date)}
       />
+      <FloatingAssistant domain={"food"} userId={user.uid} date={manager.selectedDate} />
       <Toast toast={toast} onClose={closeToast} />
     </>
   );

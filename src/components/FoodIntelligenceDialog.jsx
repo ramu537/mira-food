@@ -1,9 +1,8 @@
-import CoachingWorkspace from "./CoachingWorkspace";
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import FoodIntelligence from "./FoodIntelligence";
 
-export default function FoodIntelligenceDialog({ open, manager, onClose, userId }) {
+export default function FoodIntelligenceDialog({ open, manager, onClose }) {
   const dialogRef = useRef(null);
   const returnFocusRef = useRef(null);
   useEffect(() => {
@@ -15,7 +14,7 @@ export default function FoodIntelligenceDialog({ open, manager, onClose, userId 
   return <dialog ref={dialogRef} className="dialog food-intelligence-dialog" aria-labelledby="food-intelligence-title" onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => { if (event.target === dialogRef.current) onClose(); }}>
     <div className="dialog-card">
       <header className="dialog-header"><div><span className="eyebrow">Based on your records</span><h2 id="food-intelligence-title">Food intelligence</h2><p>Review your logged intake, weekly coverage and next-meal ideas when you need them.</p></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close food intelligence"><X size={20} /></button></header>
-      <CoachingWorkspace domain="food" userId={userId} date={manager.selectedDate} active={open} onNavigate={onClose}><div className="food-intelligence-dialog__body"><FoodIntelligence manager={manager} onNavigate={onClose} /></div></CoachingWorkspace>
+      <div className="food-intelligence-dialog__body"><FoodIntelligence manager={manager} onNavigate={onClose} /></div>
     </div>
   </dialog>;
 }

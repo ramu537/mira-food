@@ -1,125 +1,175 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { MessageCircle, Plus, Send, Trash2 } from "lucide-react";
+import { ArrowDown, Check, ChevronLeft, Copy, History, LoaderCircle, MessageCircle, Plus, Send, Trash2 } from "lucide-react";
 import { apiRequest } from "../api/client";
+import { isPendingConversation as pending, recordPath, mergeCoachTurns, shouldFollowMessages, coachBlocks } from "../lib/coachChat";
 import "../coaching.css";
 
 const starters = {
-  expenses: ["What changed in my spending, and what should I do next?", "Help me evaluate a purchase using my budget and recent spending."],
-  food: ["What should my next meal look like based on what I ate?", "Compare my recorded weeks and suggest a practical improvement."],
-  habits: ["Which routines need a different approach, and why?", "Help me make my workout, sleep and study routines easier to maintain."],
-  tasks: ["What should I focus on next, and what can wait?", "Review my workload and help me create a realistic plan."],
-  notes: ["Find connections and useful unfinished actions in my notes.", "Help me understand a topic using my saved writing."],
-  diary: ["Help me reflect on my recent entries without jumping to conclusions.", "Help me turn my trip memories into a day-by-day story."],
-  experiences: ["Help me develop my trip story from its days, stays and activities.", "What details would make this experience more useful to someone else?"],
-  investments: ["Explain my allocation, valuation gaps and upcoming dates.", "Compare scenarios using my recorded holdings and explicit assumptions."],
+  expenses: ["What changed in my spending this month?", "Can my budget accommodate a trip or a new phone?"],
+  food: ["What would be a useful next meal?", "Compare my recent weeks and suggest one improvement."],
+  habits: ["Which routine needs a different approach?", "Help me make my workout, sleep and study more consistent."],
+  tasks: ["What should I focus on next?", "Make a realistic plan from my current workload."],
+  notes: ["Find connections and unfinished actions in my notes.", "Explain a topic using my saved notes."],
+  diary: ["Help me reflect on my recent entries.", "What patterns can you see in my recorded days?"],
+  experiences: ["Help me shape my trip into a day-by-day story.", "What would make this story useful to another traveller?"],
+  investments: ["Explain my allocation and valuation gaps.", "Compare scenarios using my recorded holdings."],
 };
-import { isPendingConversation as pending, recordPath } from "../lib/coachChat";
+
+// React renders every fragment as text; model output never becomes executable HTML.
+function InlineText({ text }) {
+  return String(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, index) =>
+    part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong>
+      : part.startsWith("`") && part.endsWith("`") ? <code key={index}>{part.slice(1, -1)}</code> : part);
+}
+function Prose({ text }) {
+  return <div className="coach-prose">{coachBlocks(text).map((block, index) =>
+    block.type === "code" ? <pre key={index}><code>{block.text}</code></pre>
+      : block.type === "heading" ? <h4 key={index}><InlineText text={block.text} /></h4>
+      : block.type === "list" ? (block.ordered ? <ol key={index}>{block.items.map((item, i) => <li key={i}><InlineText text={item} /></li>)}</ol>
+        : <ul key={index}>{block.items.map((item, i) => <li key={i}><InlineText text={item} /></li>)}</ul>)
+      : <p key={index}><InlineText text={block.text} /></p>)}</div>;
+}
 function Answer({ turn, domain, onNavigate, onRetry, busy }) {
   const answer = turn.answer;
+  const [copyState, setCopyState] = useState("");
+  const copyTimer = useRef(null);
+  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
+  async function copyAnswer() {
+    try {
+      await navigator.clipboard.writeText([answer.answer, ...(answer.nextSteps || [])].join("\n\n"));
+      setCopyState("Copied");
+    } catch { setCopyState("Copy unavailable"); }
+    window.clearTimeout(copyTimer.current);
+    copyTimer.current = window.setTimeout(() => setCopyState(""), 2200);
+  }
   return <article className="coach-turn">
-    <div className="coach-question"><strong>You</strong><p>{turn.question}</p></div>
-    {pending(turn) && <p role="status" className="coach-status">Investigating your records… You can close this window; the answer will be saved.</p>}
-    {turn.status === "FAILED" && <div role="alert"><p>{turn.error || "Could not prepare this answer."}</p><button type="button" disabled={busy} onClick={() => onRetry(turn)}>Retry this question</button></div>}
+    <div className="coach-question"><span className="sr-only">You asked</span><p>{turn.question}</p></div>
+    {pending(turn) && <div role="status" className="coach-status"><LoaderCircle size={16} className="spin" /><span>Looking through your records<span className="coach-status__detail">You can minimize this chat. Your answer will be saved.</span></span></div>}
+    {turn.status === "FAILED" && <div role="alert" className="coach-error"><p>{turn.error || "This answer could not be prepared. Your question is saved."}</p><button type="button" disabled={busy} onClick={() => onRetry(turn)}>Retry question</button></div>}
     {answer && <div className="coach-answer">
-      <strong>Your assistant</strong><p className="coach-prose">{answer.answer}</p>
-      {!!answer.nextSteps?.length && <section><h4>Useful next steps</h4><ul>{answer.nextSteps.map((step, index) => <li key={index}>{step}</li>)}</ul></section>}
-      {!!answer.assumptions?.length && <details><summary>Assumptions & estimates</summary><ul>{answer.assumptions.map((item, index) => <li key={index}>{item}</li>)}</ul></details>}
-      <small>{answer.engine} · {answer.generatedAt ? new Date(answer.generatedAt).toLocaleString(undefined, { timeZone: "Asia/Kolkata" }) : ""}{answer.schemaEscalated ? " · Deeper schema investigation" : ""}</small>
-      <p className="coach-coverage">{answer.coverage}</p>
-      {!!answer.evidence?.length && <details className="coach-evidence"><summary>Supporting queries & records ({answer.evidence.length})</summary>
+      <div className="coach-answer__identity"><span className="coach-answer__mark"><MessageCircle size={13} /></span><strong>Mira assistant</strong>
+        <button className="coach-icon" type="button" onClick={copyAnswer} aria-label="Copy answer" title="Copy answer">{copyState === "Copied" ? <Check size={15} /> : <Copy size={15} />}</button><span className="sr-only" role="status">{copyState}</span></div>
+      <Prose text={answer.answer} />
+      {!!answer.nextSteps?.length && <section className="coach-next-steps"><h4>Try this next</h4><ul>{answer.nextSteps.map((step, index) => <li key={index}><InlineText text={step} /></li>)}</ul></section>}
+      {!!answer.assumptions?.length && <details className="coach-detail"><summary>Assumptions & estimates</summary><ul>{answer.assumptions.map((item, index) => <li key={index}>{item}</li>)}</ul></details>}
+      {!!answer.evidence?.length && <details className="coach-detail coach-evidence"><summary>Sources & calculations · {answer.evidence.length}</summary>
         {answer.evidence.map((query, index) => <section key={query.id}>
           <h4>{answer.citations?.find(citation => citation.queryId === query.id)?.label || "Query " + (index + 1)}</h4>
-          <p>{query.coverage}</p>{query.truncated && <p>Result truncated. Ask for a narrower range or the next page; these rows are not a complete total.</p>}
-          <details><summary>Calculation / query</summary><pre>{query.sql}</pre></details>
-          <div className="coach-table-wrap"><table><thead><tr>{Object.keys(query.rows?.[0] || {}).map(key => <th key={key}>{key.replaceAll("_", " ")}</th>)}</tr></thead><tbody>
-            {query.rows?.map((row, rowIndex) => <tr key={rowIndex}>{Object.entries(row).map(([key, value]) => <td key={key}>
+          <p>{query.coverage}</p>{query.truncated && <p>These rows are a partial result. Ask for a narrower range or the next page.</p>}
+          <details><summary>View query</summary><pre>{query.sql}</pre></details>
+          {!!query.rows?.length && <div className="coach-table-wrap" tabIndex={0} aria-label="Scrollable supporting records"><table><caption className="sr-only">Supporting records for query {index + 1}</caption><thead><tr>{Object.keys(query.rows[0]).map(key => <th scope="col" key={key}>{key.replaceAll("_", " ")}</th>)}</tr></thead><tbody>
+            {query.rows.map((row, rowIndex) => <tr key={rowIndex}>{Object.entries(row).map(([key, value]) => <td key={key}>
               {key === "id" && recordPath(domain, query, row) ? <Link onClick={onNavigate} to={recordPath(domain, query, row)}>Open #{value}</Link> : value === null ? "Unknown" : typeof value === "object" ? JSON.stringify(value) : String(value)}
             </td>)}</tr>)}
-          </tbody></table></div>{!query.rows?.length && <p>No matching records.</p>}
+          </tbody></table></div>}{!query.rows?.length && <p>No matching records.</p>}
         </section>)}
       </details>}
+      {answer.coverage && <p className="coach-coverage">{answer.coverage}</p>}
+      {answer.generatedAt && <time className="coach-time" dateTime={answer.generatedAt}>{new Date(answer.generatedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}{answer.schemaEscalated ? " · Deeper analysis" : ""}</time>}
     </div>}
   </article>;
 }
 
-function Chat({ domain, date, onNavigate, active }) {
+export default function CoachingWorkspace({ domain, date, onNavigate, active = true }) {
   const base = "/coaching/" + domain;
+  const id = useId();
   const [conversations, setConversations] = useState([]), [selected, setSelected] = useState("");
   const [turns, setTurns] = useState([]), [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState(false), [error, setError] = useState(""), [loading, setLoading] = useState(true);
-  const [historyOffset, setHistoryOffset] = useState(0), [hasOlder, setHasOlder] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const epoch = useRef(0), request = useRef(null), textarea = useRef(null), messages = useRef(null), readSequence = useRef(0);
+  const [busy, setBusy] = useState(false), [error, setError] = useState(""), [loading, setLoading] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false), [historyOffset, setHistoryOffset] = useState(0), [hasOlder, setHasOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(false), [showLatest, setShowLatest] = useState(false);
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const epoch = useRef(0), request = useRef(null), textarea = useRef(null), messages = useRef(null), readSequence = useRef(0), listSequence = useRef(0);
+  const followMessages = useRef(true), olderOffset = useRef(0);
   const latestTurn = turns.at(-1);
-  useEffect(() => { if (messages.current) messages.current.scrollTop = messages.current.scrollHeight; }, [latestTurn?.id, latestTurn?.status]);
+  const waiting = turns.some(pending);
+
+  function scrollToLatest() {
+    const node = messages.current;
+    if (node) node.scrollTop = node.scrollHeight;
+    followMessages.current = true; setShowLatest(false);
+  }
+  useEffect(() => {
+    if (!active) return;
+    if (followMessages.current) scrollToLatest();
+    else setShowLatest(true);
+  }, [latestTurn?.id, latestTurn?.status, active]);
+  useEffect(() => {
+    if (!historyOpen && active && followMessages.current) {
+      const frame = window.requestAnimationFrame(scrollToLatest);
+      return () => window.cancelAnimationFrame(frame);
+    }
+  }, [historyOpen, active]);
   useEffect(() => () => { epoch.current++; }, []);
   async function list(offset = 0) {
-    const version = epoch.current;
+    const version = epoch.current, sequence = offset ? null : ++listSequence.current;
     const result = await apiRequest(base + "/conversations?offset=" + offset);
-    if (version !== epoch.current) return;
+    if (version !== epoch.current || sequence !== null && sequence !== listSequence.current) return;
     setConversations(current => offset ? [...current, ...result.filter(item => !current.some(c => c.id === item.id))] : result);
     setHasMore(result.length === 30);
   }
   useEffect(() => {
-    let active = true;
-    list().catch(reason => { if (active) setError(reason.message); }).finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [base]);
-  async function read(id, offset = 0) {
+    if (!active) return;
+    const version = epoch.current;
+    list().catch(reason => { if (version === epoch.current) setError(reason.message); });
+  }, [base, active]);
+  async function read(conversationId, offset = 0) {
     const version = epoch.current, sequence = offset ? null : ++readSequence.current;
-    const result = await apiRequest(base + "/conversations/" + id + "?offset=" + offset);
-    if (version !== epoch.current || sequence !== null && sequence !== readSequence.current) return;
-    setTurns(current => offset ? [...result, ...current.filter(turn => !result.some(item => item.id === turn.id))]
-      : [...current.filter(turn => !result.some(item => item.id === turn.id) && !pending(turn)), ...result]);
-    if (offset || historyOffset === 0) setHasOlder(result.length === 40);
+    const result = await apiRequest(base + "/conversations/" + conversationId + "?offset=" + offset);
+    if (version !== epoch.current || sequence !== null && sequence !== readSequence.current) return null;
+    setError(""); setTurns(current => mergeCoachTurns(current, result));
+    if (offset || olderOffset.current === 0) setHasOlder(result.length === 40);
     return result;
   }
-  async function select(id) {
-    epoch.current++; request.current = null; setSelected(id); setTurns([]); setError(""); setHistoryOffset(0); setHasOlder(false);
-    if (!id) { setLoading(false); textarea.current?.focus(); return; }
+  async function select(conversationId) {
+    epoch.current++; request.current = null; olderOffset.current = 0; followMessages.current = true;
+    setSelected(conversationId); setTurns([]); setError(""); setHistoryOffset(0); setHasOlder(false); setShowLatest(false); setHistoryOpen(false); setDeleteArmed(false);
+    if (!conversationId) { setLoading(false); window.requestAnimationFrame(() => textarea.current?.focus()); return; }
     setLoading(true); const version = epoch.current;
-    try { await read(id); } catch (reason) { if (version === epoch.current) setError(reason.message); }
+    try { await read(conversationId); } catch (reason) { if (version === epoch.current) setError(reason.message); }
     finally { if (version === epoch.current) setLoading(false); }
   }
-  const waiting = turns.some(pending);
   useEffect(() => {
-    if (!selected || !active) return undefined;
+    if (!selected || !active && !waiting) return undefined;
     const sync = () => {
       const version = epoch.current;
       if (document.visibilityState === "visible") read(selected).catch(reason => { if (version === epoch.current) setError(reason.message); });
     };
     sync();
-    const timer = window.setInterval(sync, waiting ? 2500 : 30000);
+    const timer = window.setInterval(sync, waiting ? active ? 2500 : 10000 : 30000);
     window.addEventListener("focus", sync);
     return () => { window.clearInterval(timer); window.removeEventListener("focus", sync); };
   }, [selected, waiting, active]);
+
   async function send(event) {
     event.preventDefault();
-    if (busy || waiting || !draft.trim()) return;
+    if (busy || loading || waiting || !draft.trim()) return;
     const version = epoch.current, question = draft.trim();
+    // Keep these IDs across a lost response: retrying cannot submit the question twice.
     if (!request.current || request.current.question !== question || request.current.selected !== selected || request.current.date !== date)
       request.current = { conversationId: selected || crypto.randomUUID(), requestId: crypto.randomUUID(), question, selected, date };
     const payload = { conversationId: request.current.conversationId, requestId: request.current.requestId, question, contextDate: date };
-    setBusy(true); setError("");
+    setBusy(true); setError(""); followMessages.current = true;
     try {
       const turn = await apiRequest(base + "/messages", { method: "POST", body: JSON.stringify(payload) });
       if (version !== epoch.current) return;
-      setSelected(turn.conversationId); setTurns(current => [...current.filter(item => item.id !== turn.id), turn]);
-      setDraft(""); request.current = null;
-      list().catch(() => {}); // A list refresh failure must never obscure the successfully submitted question.
+      setSelected(turn.conversationId); setTurns(current => mergeCoachTurns(current, [turn]));
+      setDraft(""); request.current = null; setDeleteArmed(false);
+      list().catch(() => {});
     } catch (reason) { if (version === epoch.current) setError(reason.message); }
-    finally { if (version === epoch.current) setBusy(false); }
+    finally { if (version === epoch.current) { setBusy(false); textarea.current?.focus(); } }
   }
   async function retry(turn) {
     setBusy(true); setError(""); const version = epoch.current;
     try {
       const updated = await apiRequest(base + "/conversations/" + selected + "/turns/" + turn.id + "/retry", { method: "POST" });
-      if (version === epoch.current) setTurns(current => current.map(item => item.id === turn.id ? updated : item));
+      if (version === epoch.current) { readSequence.current++; setTurns(current => mergeCoachTurns(current, [updated])); }
     } catch (reason) { if (version === epoch.current) setError(reason.message); }
     finally { if (version === epoch.current) setBusy(false); }
   }
   async function remove() {
+    if (!deleteArmed) { setDeleteArmed(true); return; }
     setBusy(true); setError(""); const version = epoch.current;
     try {
       await apiRequest(base + "/conversations/" + selected, { method: "DELETE" });
@@ -129,55 +179,50 @@ function Chat({ domain, date, onNavigate, active }) {
     finally { setBusy(false); }
   }
   async function older() {
-    setBusy(true); const offset = historyOffset + 40;
-    try { await read(selected, offset); setHistoryOffset(offset); } catch (reason) { setError(reason.message); }
-    finally { setBusy(false); }
+    setBusy(true); const offset = historyOffset + 40, version = epoch.current;
+    const node = messages.current, previousHeight = node?.scrollHeight || 0, previousTop = node?.scrollTop || 0;
+    followMessages.current = false;
+    try {
+      if (await read(selected, offset) && version === epoch.current) {
+        setHistoryOffset(offset); olderOffset.current = offset;
+        window.requestAnimationFrame(() => {
+          if (version === epoch.current && messages.current) messages.current.scrollTop = previousTop + messages.current.scrollHeight - previousHeight;
+        });
+      }
+    } catch (reason) { if (version === epoch.current) setError(reason.message); }
+    finally { if (version === epoch.current) setBusy(false); }
   }
-  return <section className="coach-chat" aria-label="Personal coaching conversation">
+  const title = conversations.find(item => item.id === selected)?.title || (selected ? "Current conversation" : "New conversation");
+  return <section className="coach-chat" aria-label="Personal assistant conversation">
     <div className="coach-toolbar">
-      <label>Conversation<select value={selected} disabled={busy} onChange={event => select(event.target.value)}><option value="">New conversation</option>{selected && !conversations.some(item => item.id === selected) && <option value={selected}>Current conversation</option>}{conversations.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
-      <button type="button" disabled={busy} onClick={() => select("")} aria-label="New conversation"><Plus size={17} /></button>
-      {selected && <button type="button" disabled={busy} onClick={remove} aria-label="Delete this conversation" title="Delete this conversation"><Trash2 size={17} /></button>}
+      <button className="coach-history-toggle" type="button" disabled={busy} aria-expanded={historyOpen} aria-controls={id + "-history"} onClick={() => setHistoryOpen(value => !value)}><History size={15} /><span>{historyOpen ? "Conversation history" : title}</span></button>
+      <button className="coach-icon" type="button" disabled={busy} onClick={() => select("")} aria-label="Start a new conversation" title="New conversation"><Plus size={18} /></button>
     </div>
-    {hasMore && <button type="button" disabled={busy} onClick={() => list(conversations.length).catch(reason => setError(reason.message))}>More conversations</button>}
-    {error && <div role="alert" className="coach-error"><p>{error}</p><button type="button" disabled={busy} onClick={() => { setError(""); (selected ? read(selected) : list()).catch(reason => setError(reason.message)); }}>Refresh conversation</button></div>}
-    {loading && <p role="status">Loading conversations…</p>}
-    {hasOlder && <button type="button" disabled={busy} onClick={older}>Earlier messages</button>}
-    <div ref={messages} className="coach-messages" aria-live="polite" aria-relevant="additions text">
-      {turns.map(turn => <Answer key={turn.id} turn={turn} domain={domain} onNavigate={onNavigate} onRetry={retry} busy={busy || waiting} />)}
-      {!loading && !turns.length && <div className="coach-welcome"><MessageCircle size={26} /><h3>Ask something that matters to you.</h3><p>I can investigate your saved records, compare periods, explore scenarios and help you decide a useful next step.</p>
-        <div className="coach-starters">{(starters[domain] || []).map(question => <button key={question} type="button" onClick={() => { setDraft(question); textarea.current?.focus(); }}>{question}</button>)}</div></div>}
+    {historyOpen && <div id={id + "-history"} className="coach-history">
+      <div className="coach-history__heading"><span>Your conversations</span><button className="coach-icon" type="button" onClick={() => setHistoryOpen(false)} aria-label="Back to chat"><ChevronLeft size={16} /></button></div>
+      {!conversations.length && <p>No saved conversations yet.</p>}
+      <div className="coach-history__list">{conversations.map(item => <button key={item.id} type="button" disabled={busy} aria-pressed={selected === item.id} onClick={() => select(item.id)}><MessageCircle size={15} /><span><strong>{item.title}</strong><small>{new Date(item.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</small></span></button>)}</div>
+      {hasMore && <button type="button" disabled={busy} onClick={() => list(conversations.length).catch(reason => setError(reason.message))}>Load more conversations</button>}
+      {selected && <div className="coach-history__delete"><button type="button" disabled={busy} onClick={remove}><Trash2 size={14} />{deleteArmed ? "Confirm delete conversation" : "Delete current conversation"}</button>{deleteArmed && <button type="button" onClick={() => setDeleteArmed(false)}>Cancel</button>}<small>Only the conversation is removed. Your records stay unchanged.</small></div>}
+    </div>}
+    {error && <div role="alert" className="coach-error"><p>{error}</p><button type="button" disabled={busy} onClick={() => { setError(""); (selected ? read(selected) : list()).catch(reason => setError(reason.message)); }}>Refresh</button></div>}
+    <p className="sr-only" role="status">{latestTurn?.status === "COMPLETED" ? "Your assistant’s answer is ready." : ""}</p>
+    <div className="coach-message-region" hidden={historyOpen}>
+      <div ref={messages} className="coach-messages" onScroll={event => { followMessages.current = shouldFollowMessages(event.currentTarget); if (followMessages.current) setShowLatest(false); }}>
+        {loading && <p role="status" className="coach-status"><LoaderCircle size={16} className="spin" />Loading conversation…</p>}
+        {hasOlder && <button className="coach-older" type="button" disabled={busy} onClick={older}>Load earlier messages</button>}
+        {turns.map(turn => <Answer key={turn.id} turn={turn} domain={domain} onNavigate={onNavigate} onRetry={retry} busy={busy || waiting} />)}
+        {!loading && !turns.length && <div className="coach-welcome"><span className="coach-welcome__mark"><MessageCircle size={24} /></span><h3>What’s on your mind?</h3><p>Ask about your records, compare periods, or explore a decision together.</p>
+          <div className="coach-starters">{(starters[domain] || []).map(question => <button key={question} type="button" onClick={() => { setDraft(question); textarea.current?.focus(); }}>{question}<span aria-hidden="true">↗</span></button>)}</div></div>}
+      </div>
+      {showLatest && <button className="coach-jump" type="button" onClick={scrollToLatest}><ArrowDown size={14} /> Latest message</button>}
     </div>
-    <form className="coach-composer" onSubmit={send}>
-      <label htmlFor={"coach-question-" + domain}>Ask your assistant</label>
-      <textarea ref={textarea} id={"coach-question-" + domain} value={draft} maxLength={8000} rows={3} placeholder="Ask a detailed question, or follow up on an answer…" onChange={event => setDraft(event.target.value)}
-        onKeyDown={event => { if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) { event.preventDefault(); event.currentTarget.form.requestSubmit(); } }} />
-      <div><small>Estimates are labelled. Coaching does not change your records. Ctrl/⌘ + Enter to send.</small><button className="button button--primary" type="submit" disabled={busy || waiting || !draft.trim()}><Send size={16} />{busy ? "Sending…" : "Ask"}</button></div>
+    <form className="coach-composer" hidden={historyOpen} onSubmit={send}>
+      <label className="sr-only" htmlFor={id + "-question"}>Message your assistant</label>
+      <div className="coach-composer__input"><textarea ref={textarea} id={id + "-question"} value={draft} maxLength={8000} rows={2} placeholder={waiting ? "You can draft your follow-up while I work…" : "Ask Mira anything about your records…"} onChange={event => setDraft(event.target.value)}
+        onKeyDown={event => { if (event.key === "Enter" && !event.nativeEvent.isComposing && (event.ctrlKey || event.metaKey)) { event.preventDefault(); event.currentTarget.form.requestSubmit(); } }} />
+        <button className="coach-send" type="submit" aria-label={busy ? "Sending message" : "Send message"} title="Send (Ctrl / ⌘ + Enter)" disabled={busy || loading || waiting || !draft.trim()}>{busy ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}</button></div>
+      <div className="coach-composer__meta"><span>{waiting ? "Answer in progress · your draft stays here" : "Based on your records · estimates labelled"}</span><span>{draft.length > 7400 ? draft.length + "/8000" : "Ctrl / ⌘ ↵"}</span></div>
     </form>
   </section>;
-}
-export default function CoachingWorkspace({ domain, userId, date, onNavigate, children, active = true }) {
-  const [tab, setTab] = useState("insights");
-  const [visited, setVisited] = useState(false);
-  const id = "coach-panel-" + domain;
-  function switchTab(next) {
-    setTab(next);
-    if (next === "chat") setVisited(true);
-    document.getElementById(id + "-" + next + "-tab")?.focus();
-  }
-  function tabKeys(event) {
-    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    switchTab(event.key === "Home" ? "insights" : event.key === "End" ? "chat" : tab === "chat" ? "insights" : "chat");
-  }
-  return <div className="coaching-workspace">
-    <div className="coach-tabs" role="tablist" aria-label="Intelligence views" onKeyDown={tabKeys}>
-      <button id={id + "-insights-tab"} role="tab" tabIndex={tab === "insights" ? 0 : -1} aria-selected={tab === "insights"} aria-controls={id + "-insights"} type="button" onClick={() => setTab("insights")}>Insights</button>
-      <button id={id + "-chat-tab"} role="tab" tabIndex={tab === "chat" ? 0 : -1} aria-selected={tab === "chat"} aria-controls={id + "-chat"} type="button" onClick={() => { setVisited(true); setTab("chat"); }}><MessageCircle size={16} /> Ask your assistant</button>
-    </div>
-    <div id={id + "-insights"} role="tabpanel" aria-labelledby={id + "-insights-tab"} hidden={tab !== "insights"}>{children}</div>
-    <div id={id + "-chat"} role="tabpanel" aria-labelledby={id + "-chat-tab"} hidden={tab !== "chat"}>
-      {visited && <Chat key={domain + ":" + userId} domain={domain} date={date} onNavigate={onNavigate} active={active && tab === "chat"} />}
-    </div>
-  </div>;
 }

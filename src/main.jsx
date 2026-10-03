@@ -3,7 +3,9 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App";
 import "./styles.css";
+import "./lib/theme";
 import "./intelligence.css";
+import "./refinement.css";
 
 const router = createBrowserRouter([{ path: "*", element: <App /> }]);
 

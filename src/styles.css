@@ -75,8 +75,7 @@
     --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
+  :root[data-theme="dark"] {
       color-scheme: dark;
       --canvas: oklch(0.17 0.022 292);
       --canvas-deep: oklch(0.14 0.025 292);
@@ -106,8 +105,8 @@
       --shadow-md: 0 20px 50px oklch(0.05 0.015 292 / 30%);
       --shadow-lg: 0 36px 96px oklch(0.04 0.012 292 / 52%);
       --shadow-accent: 0 14px 34px oklch(0.75 0.15 105 / 14%);
-    }
-  }
+      }
+
 }
 
 @layer base {
