@@ -52,10 +52,21 @@ export function macroEnergy(total) {
 export function trendSummary(entries, endDate, goal, days = 14) {
   const dates = dateRange(endDate, days);
   const dateSet = new Set(dates);
-  const series = dates.map((date) => ({ date, ...nutritionTotal(entriesOn(entries, date)) }));
-  const loggedSeries = series.filter((day) => day.calories > 0);
+  const matching = entries.filter(entry => dateSet.has(entry.loggedOn));
+  const series = dates.map((date) => {
+    const records = entriesOn(matching, date);
+    const totals = nutritionTotal(records);
+    return { date, entries: records.length, ...totals,
+      protein: records.some(entry => entry.protein != null) ? totals.protein : null,
+      carbs: records.some(entry => entry.carbs != null) ? totals.carbs : null,
+      fat: records.some(entry => entry.fat != null) ? totals.fat : null };
+  });
+  const loggedSeries = series.filter((day) => day.entries > 0);
   const divisor = loggedSeries.length || 1;
-  const average = (key) => Math.round(loggedSeries.reduce((sum, day) => sum + day[key], 0) / divisor);
+  const average = (key) => {
+    const known = loggedSeries.filter(day => day[key] != null);
+    return known.length ? Math.round(known.reduce((sum, day) => sum + day[key], 0) / known.length) : null;
+  };
   const foods = new Map();
 
   entries.filter((entry) => dateSet.has(entry.loggedOn)).forEach((entry) => {
@@ -69,10 +80,14 @@ export function trendSummary(entries, endDate, goal, days = 14) {
   return {
     series,
     loggedDays: loggedSeries.length,
-    averageCalories: average("calories"),
+    averageCalories: Math.round(loggedSeries.reduce((sum, day) => sum + day.calories, 0) / divisor),
     averageProtein: average("protein"),
     averageCarbs: average("carbs"),
     averageFat: average("fat"),
+    proteinKnownDays: loggedSeries.filter(day => day.protein != null).length,
+    partialNutrition: matching.some(entry => ["protein", "carbs", "fat"].some(key => entry[key] == null)),
+    estimatedEntries: matching.filter(entry => entry.nutritionEstimated).length,
+    knownTotals: nutritionTotal(matching),
     overTarget: loggedSeries.filter((day) => day.calories > goal.calories).length,
     totalEntries: entries.filter((entry) => dateSet.has(entry.loggedOn)).length,
     frequentFoods: Array.from(foods.values())

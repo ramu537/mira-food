@@ -6,6 +6,70 @@
   }
 }
 @layer pages {
+  .food-coach { display: grid; gap: 1rem; }
+  .food-coach .intelligence-toolbar { margin: 0; flex-wrap: wrap; }
+  .food-coach-context { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; }
+  .food-coach-context a { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .4rem; min-height: 2.75rem; font-size: .875rem; color: var(--text-secondary); }
+  .food-coach-context a:first-child { color: var(--text-primary); font-weight: 600; }
+  .food-coach-context small { font-size: .75rem; color: var(--text-tertiary); }
+  .food-coach-briefing, .food-coach-intake, .food-coach-week, .food-coach-meals { min-width: 0; padding: clamp(1rem, 2vw, 1.5rem); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--surface-glass); }
+  .food-coach-briefing { background: var(--food-insight-surface); border-color: var(--food-insight-border); }
+  .food-coach h3 { font-size: 1.15rem; line-height: 1.35; letter-spacing: -.025em; }
+  .food-coach-briefing h3 { margin-top: .5rem; font-size: clamp(1.25rem, 2vw, 1.55rem); }
+  .food-coach p { line-height: 1.65; font-size: .9375rem; color: var(--text-secondary); max-width: var(--food-copy-width); }
+  .food-coach-briefing > p { margin-top: .65rem; }
+  .food-coach-next-step { display: flex; gap: .65rem; align-items: start; margin-top: .8rem; padding: .8rem; border-radius: var(--radius-xs); background: var(--accent-soft); }
+  .food-coach-next-step > svg { flex-shrink: 0; color: var(--accent-strong); margin-top: .2rem; }
+  .food-coach-next-step p { margin: 0; color: var(--text-primary); }
+  .food-coach-next-step strong { display: block; margin-bottom: .2rem; font-size: .8125rem; color: var(--accent-strong); }
+  .food-coach-intake { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .8rem 1rem; }
+  .food-coach-intake > div { display: grid; gap: .35rem; }
+  .food-coach-intake > div > strong { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+  .food-coach-intake > div > small, .food-coach-target { color: var(--text-secondary); font-size: .8125rem; line-height: 1.55; }
+  .food-coach-intake dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: 0; align-content: center; }
+  .food-coach-intake dt { color: var(--text-secondary); font-size: .8125rem; }
+  .food-coach-intake dd { margin: .35rem 0 0; font-size: 1.125rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .food-coach-intake dd small { font-size: .8rem; font-weight: 400; }
+  .food-coach-intake > p, .food-coach-intake > .food-coach-target { grid-column: 1 / -1; margin: 0; }
+  .food-coach-meals > header, .food-coach-week > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+  .food-coach-meals h3, .food-coach-week h3 { margin-top: .35rem; }
+  .food-coach .food-coach-meal-note { font-size: .8125rem; margin-block: .7rem; }
+  .food-coach-meal-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: .75rem; padding: 0; margin: 1rem 0; list-style: none; }
+  .food-meal-option { min-width: 0; padding: 1rem; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-1); }
+  .food-meal-option header { display: flex; align-items: start; gap: .5rem; }
+  .food-meal-option h4 { font-size: 1rem; line-height: 1.4; margin: 0; }
+  .food-option-number { display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--accent-strong); font-size: .75rem; font-weight: 700; }
+  .food-meal-option p { margin-top: .7rem; font-size: .875rem; }
+  .food-meal-option .food-option-portion { color: var(--text-primary); font-weight: 600; }
+  .food-option-nutrition { display: flex; flex-wrap: wrap; gap: .3rem .6rem; padding-block: .7rem; margin-top: .7rem; border-block: 1px solid var(--border-subtle); font-size: .8125rem; }
+  .food-option-nutrition > span { width: 100%; color: var(--text-tertiary); }
+  .food-option-nutrition strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .food-option-alternative strong { color: var(--text-primary); margin-right: .2rem; }
+  .food-option-ask { margin-top: .35rem; color: var(--accent-strong); text-align: left; }
+  .food-coach details { font-size: .8125rem; color: var(--text-secondary); }
+  .food-coach summary { min-height: 2.75rem; padding-block: .65rem; cursor: pointer; line-height: 1.45; }
+  .food-coach summary svg { vertical-align: middle; margin-right: .3rem; }
+  .food-coach details ul { padding-left: 1.2rem; line-height: 1.65; }
+  .food-coach-evidence { margin-top: .5rem; }
+  .food-coach-evidence dd { margin: .25rem 0 .7rem; overflow-wrap: anywhere; font-size: .8125rem; }
+  .food-coach-evidence dt { font-weight: 600; }
+  .food-coach-week .weekly-food-days { justify-content: start; flex-wrap: wrap; margin: 1rem 0; }
+  .food-coach-coverage { padding: .35rem .6rem; border-radius: 999px; background: var(--surface-2); color: var(--text-secondary); font-size: .8125rem; }
+  .food-week-observations { list-style: none; padding: 0; margin: 1rem 0 0; }
+  .food-week-observations > li { padding: .8rem 0; border-top: 1px solid var(--border-subtle); }
+  .food-week-observations > li > strong { font-size: .9375rem; }
+  .food-week-observations p { margin-top: .35rem; }
+  .food-coach-care, .food-coach-ai { padding: .25rem 1rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--surface-glass); }
+  .food-coach-freshness { padding: .75rem 1rem; border: 1px solid var(--food-insight-border); border-radius: var(--radius-xs); background: var(--surface-2); }
+  .food-coach-freshness p { margin: 0; font-size: .875rem; }
+  .food-coach-freshness small { display: block; margin-top: .3rem; }
+  .food-coach-draft-suggestion { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem .6rem; padding: .6rem; background: var(--accent-soft); border-radius: var(--radius-xs); font-size: .8125rem; }
+  @media (max-width: 1100px) { .food-coach-meal-options { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 540px) {
+    .food-coach-intake { grid-template-columns: minmax(0, 1fr); }
+    .food-coach .intelligence-toolbar small { display: none; }
+    .food-intelligence-dialog__body { padding-inline: .75rem; }
+  }
   .topbar-settings { border: 1px solid var(--border-subtle); background: var(--surface-glass); }
   .topbar-settings.is-active { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent-strong); }
   .topbar-intelligence { border: 1px solid var(--border-subtle); background: var(--surface-glass); color: var(--accent-strong); }

@@ -7,7 +7,7 @@ import "../coaching.css";
 
 const starters = {
   expenses: ["What changed in my spending this month?", "Can my budget accommodate a trip or a new phone?"],
-  food: ["What would be a useful next meal?", "Compare my recent weeks and suggest one improvement."],
+  food: ["I want an easy next meal. What fits what I’ve eaten and my goal?", "Compare my recorded weeks and give me one practical adjustment."],
   habits: ["Which routine needs a different approach?", "Help me make my workout, sleep and study more consistent."],
   tasks: ["What should I focus on next?", "Make a realistic plan from my current workload."],
   notes: ["Find connections and unfinished actions in my notes.", "Explain a topic using my saved notes."],
@@ -71,7 +71,7 @@ function Answer({ turn, domain, onNavigate, onRetry, busy }) {
   </article>;
 }
 
-export default function CoachingWorkspace({ domain, date, onNavigate, active = true }) {
+export default function CoachingWorkspace({ domain, date, onNavigate, promptSeed = null, active = true }) {
   const base = "/coaching/" + domain;
   const id = useId();
   const [conversations, setConversations] = useState([]), [selected, setSelected] = useState("");
@@ -80,10 +80,26 @@ export default function CoachingWorkspace({ domain, date, onNavigate, active = t
   const [historyOpen, setHistoryOpen] = useState(false), [historyOffset, setHistoryOffset] = useState(0), [hasOlder, setHasOlder] = useState(false);
   const [hasMore, setHasMore] = useState(false), [showLatest, setShowLatest] = useState(false);
   const [deleteArmed, setDeleteArmed] = useState(false);
+  const [suggestedPrompt, setSuggestedPrompt] = useState(null), [draftDate, setDraftDate] = useState(null);
   const epoch = useRef(0), request = useRef(null), textarea = useRef(null), messages = useRef(null), readSequence = useRef(0), listSequence = useRef(0);
   const followMessages = useRef(true), olderOffset = useRef(0);
+  const draftRef = useRef(draft), consumedPrompt = useRef(null);
+  draftRef.current = draft;
   const latestTurn = turns.at(-1);
   const waiting = turns.some(pending);
+
+  function useSuggestedPrompt(seed) {
+    setDraft(seed.question); setDraftDate(seed.contextDate || date);
+    setSuggestedPrompt(null); setHistoryOpen(false);
+    window.requestAnimationFrame(() => textarea.current?.focus());
+  }
+  useEffect(() => {
+    if (!active || !promptSeed || consumedPrompt.current === promptSeed.id) return;
+    consumedPrompt.current = promptSeed.id;
+    // A clicked recommendation must not silently overwrite an unfinished question.
+    if (draftRef.current.trim()) { setSuggestedPrompt(promptSeed); setHistoryOpen(false); }
+    else useSuggestedPrompt(promptSeed);
+  }, [promptSeed, active]);
 
   function scrollToLatest() {
     const node = messages.current;
@@ -145,17 +161,17 @@ export default function CoachingWorkspace({ domain, date, onNavigate, active = t
   async function send(event) {
     event.preventDefault();
     if (busy || loading || waiting || !draft.trim()) return;
-    const version = epoch.current, question = draft.trim();
+    const version = epoch.current, question = draft.trim(), contextDate = draftDate || date;
     // Keep these IDs across a lost response: retrying cannot submit the question twice.
-    if (!request.current || request.current.question !== question || request.current.selected !== selected || request.current.date !== date)
-      request.current = { conversationId: selected || crypto.randomUUID(), requestId: crypto.randomUUID(), question, selected, date };
-    const payload = { conversationId: request.current.conversationId, requestId: request.current.requestId, question, contextDate: date };
+    if (!request.current || request.current.question !== question || request.current.selected !== selected || request.current.date !== contextDate)
+      request.current = { conversationId: selected || crypto.randomUUID(), requestId: crypto.randomUUID(), question, selected, date: contextDate };
+    const payload = { conversationId: request.current.conversationId, requestId: request.current.requestId, question, contextDate };
     setBusy(true); setError(""); followMessages.current = true;
     try {
       const turn = await apiRequest(base + "/messages", { method: "POST", body: JSON.stringify(payload) });
       if (version !== epoch.current) return;
       setSelected(turn.conversationId); setTurns(current => mergeCoachTurns(current, [turn]));
-      setDraft(""); request.current = null; setDeleteArmed(false);
+      setDraft(""); setDraftDate(null); request.current = null; setDeleteArmed(false);
       list().catch(() => {});
     } catch (reason) { if (version === epoch.current) setError(reason.message); }
     finally { if (version === epoch.current) { setBusy(false); textarea.current?.focus(); } }
@@ -218,11 +234,12 @@ export default function CoachingWorkspace({ domain, date, onNavigate, active = t
       {showLatest && <button className="coach-jump" type="button" onClick={scrollToLatest}><ArrowDown size={14} /> Latest message</button>}
     </div>
     <form className="coach-composer" hidden={historyOpen} onSubmit={send}>
+      {suggestedPrompt && <div className="food-coach-draft-suggestion"><span>A meal question is ready. Your existing draft is kept.</span><button className="food-text-button" type="button" onClick={() => useSuggestedPrompt(suggestedPrompt)}>Use meal question</button><button className="coach-icon" type="button" onClick={() => setSuggestedPrompt(null)} aria-label="Dismiss suggested meal question">×</button></div>}
       <label className="sr-only" htmlFor={id + "-question"}>Message your assistant</label>
       <div className="coach-composer__input"><textarea ref={textarea} id={id + "-question"} value={draft} maxLength={8000} rows={2} placeholder={waiting ? "You can draft your follow-up while I work…" : "Ask Mira anything about your records…"} onChange={event => setDraft(event.target.value)}
         onKeyDown={event => { if (event.key === "Enter" && !event.nativeEvent.isComposing && (event.ctrlKey || event.metaKey)) { event.preventDefault(); event.currentTarget.form.requestSubmit(); } }} />
         <button className="coach-send" type="submit" aria-label={busy ? "Sending message" : "Send message"} title="Send (Ctrl / ⌘ + Enter)" disabled={busy || loading || waiting || !draft.trim()}>{busy ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}</button></div>
-      <div className="coach-composer__meta"><span>{waiting ? "Answer in progress · your draft stays here" : "Based on your records · estimates labelled"}</span><span>{draft.length > 7400 ? draft.length + "/8000" : "Ctrl / ⌘ ↵"}</span></div>
+      <div className="coach-composer__meta"><span>{waiting ? "Answer in progress · your draft stays here" : draftDate ? "Food log · " + draftDate : "Based on your records · estimates labelled"}</span><span>{draft.length > 7400 ? draft.length + "/8000" : "Ctrl / ⌘ ↵"}</span></div>
     </form>
   </section>;
 }

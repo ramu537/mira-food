@@ -17,7 +17,7 @@ function Metric({ icon: Icon, label, value, detail, tone = "default" }) {
 export default function TrendsPage({ entries, goal, today }) {
   const trends = useMemo(() => trendSummary(entries, today, goal), [entries, goal, today]);
   const chartMax = Math.max(goal.calories, ...trends.series.map((day) => day.calories), 1);
-  const energy = macroEnergy({ protein: trends.averageProtein, carbs: trends.averageCarbs, fat: trends.averageFat });
+  const energy = macroEnergy(trends.knownTotals);
   const coverageTone = trends.loggedDays >= 10 ? "positive" : trends.loggedDays >= 5 ? "warning" : "default";
 
   return (
@@ -32,9 +32,9 @@ export default function TrendsPage({ entries, goal, today }) {
       </header>
 
       <section className="metric-grid" aria-label="Nutrition trend summary">
-        <Metric icon={Flame} label="Average calories" value={`${trends.averageCalories.toLocaleString("en-IN")} kcal`} detail="per logged day" />
+        <Metric icon={Flame} label="Average calories" value={trends.loggedDays ? `${trends.averageCalories.toLocaleString("en-IN")} kcal` : "—"} detail="per logged day · not full intake" />
         <Metric icon={CalendarCheck2} label="Days logged" value={`${trends.loggedDays} / 14`} detail="honest coverage" tone={coverageTone} />
-        <Metric icon={Drumstick} label="Average protein" value={`${formatMacro(trends.averageProtein)} g`} detail={`target ${goal.protein} g`} tone="positive" />
+        <Metric icon={Drumstick} label="Known protein average" value={trends.averageProtein == null ? "—" : `${formatMacro(trends.averageProtein)} g`} detail={`${trends.proteinKnownDays} days with protein values · partial days remain partial`} />
         <Metric icon={UtensilsCrossed} label="Food entries" value={trends.totalEntries.toLocaleString("en-IN")} detail={`${trends.overTarget} days above target`} />
       </section>
 
@@ -71,8 +71,8 @@ export default function TrendsPage({ entries, goal, today }) {
 
       <section className="trend-details">
         <article className="panel macro-split-card">
-          <header className="panel-header"><div><span className="eyebrow">Logged-day average</span><h2>Macro energy split</h2></div></header>
-          {energy.total ? (
+          <header className="panel-header"><div><span className="eyebrow">Known recorded values</span><h2>Macro energy split</h2></div></header>
+          {energy.total && !trends.partialNutrition ? (
             <>
               <div className="macro-split" aria-label={`Estimated energy split: ${energy.proteinShare}% protein, ${energy.carbsShare}% carbohydrates, ${energy.fatShare}% fat`}>
                 <span className="split-protein" style={{ width: `${energy.proteinShare}%` }} />
@@ -80,13 +80,13 @@ export default function TrendsPage({ entries, goal, today }) {
                 <span className="split-fat" style={{ width: `${energy.fatShare}%` }} />
               </div>
               <div className="split-list">
-                <SplitRow label="Protein" grams={trends.averageProtein} share={energy.proteinShare} tone="protein" />
-                <SplitRow label="Carbs" grams={trends.averageCarbs} share={energy.carbsShare} tone="carbs" />
-                <SplitRow label="Fat" grams={trends.averageFat} share={energy.fatShare} tone="fat" />
+                <SplitRow label="Protein" grams={trends.knownTotals.protein} share={energy.proteinShare} tone="protein" />
+                <SplitRow label="Carbs" grams={trends.knownTotals.carbs} share={energy.carbsShare} tone="carbs" />
+                <SplitRow label="Fat" grams={trends.knownTotals.fat} share={energy.fatShare} tone="fat" />
               </div>
-              <p className="method-note">Energy shares estimate 4 kcal/g for protein and carbohydrates and 9 kcal/g for fat.</p>
+              <p className="method-note">Whole-period recorded totals, not daily requirements. Energy shares estimate 4 kcal/g for protein and carbohydrates and 9 kcal/g for fat. {trends.estimatedEntries > 0 && `${trends.estimatedEntries} entries use nutrition estimates.`}</p>
             </>
-          ) : <div className="panel-empty"><strong>No macro pattern yet</strong><span>Add macro values to your food entries to reveal the split.</span></div>}
+          ) : <div className="panel-empty"><strong>{trends.partialNutrition ? "Some macros are unknown" : "No macro pattern yet"}</strong><span>{trends.partialNutrition ? "A complete split would be misleading. Known averages above remain available; unknown nutrients are not zero." : "Your recorded foods remain available without macro values."}</span></div>}
         </article>
 
         <article className="panel frequent-card">

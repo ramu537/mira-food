@@ -7,8 +7,21 @@ const labels = { expenses: "Money", food: "Food", habits: "Habits", tasks: "Task
 export default function FloatingAssistant({ domain, userId, date }) {
   const [open, setOpen] = useState(false), [expanded, setExpanded] = useState(false), [visited, setVisited] = useState([]);
   const [viewport, setViewport] = useState(null);
+  const [promptSeed, setPromptSeed] = useState(null);
   const launcher = useRef(null), panel = useRef(null);
   const id = useId();
+  useEffect(() => {
+    function receive(event) {
+      const question = event.detail?.question;
+      if (domain !== "food" || typeof question !== "string" || !question.trim() || question.length > 8000) return;
+      const contextDate = /^\d{4}-\d{2}-\d{2}$/.test(event.detail?.contextDate || "") ? event.detail.contextDate : date;
+      setPromptSeed({ id: crypto.randomUUID(), question: question.trim(), contextDate, owner: userId });
+      setOpen(true);
+    }
+    window.addEventListener("mira:ask-food", receive);
+    return () => window.removeEventListener("mira:ask-food", receive);
+  }, [domain, date, userId]);
+  useEffect(() => { setOpen(false); setVisited([]); setPromptSeed(null); }, [userId]);
   useEffect(() => { if (open) setVisited(current => current.includes(domain) ? current : [...current, domain]); }, [open, domain]);
   useEffect(() => {
     if (!open) return;
@@ -33,7 +46,7 @@ export default function FloatingAssistant({ domain, userId, date }) {
         <div className="assistant-window__actions"><button className="coach-icon assistant-expand" type="button" onClick={() => setExpanded(value => !value)} aria-label={expanded ? "Restore compact chat" : "Expand chat"} title={expanded ? "Restore size" : "Expand"}>{expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
           <button className="coach-icon" type="button" onClick={close} aria-label="Minimize chat" title="Minimize"><Minus size={18} /></button><button className="coach-icon" type="button" onClick={close} aria-label="Close chat window" title="Close"><X size={18} /></button></div>
       </header>
-      {visited.map(product => <div key={product + ":" + userId} className="assistant-window__workspace" hidden={product !== domain}><CoachingWorkspace domain={product} date={date} active={open && product === domain} onNavigate={close} /></div>)}
+      {visited.map(product => <div key={product + ":" + userId} className="assistant-window__workspace" hidden={product !== domain}><CoachingWorkspace domain={product} date={date} promptSeed={product === "food" && promptSeed?.owner === userId ? promptSeed : null} active={open && product === domain} onNavigate={close} /></div>)}
     </section>
   </div>, document.body);
 }
