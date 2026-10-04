@@ -134,7 +134,9 @@
   .assistant-expand { display: none; }
   .assistant-root .coach-composer { padding: 0.7rem 0.8rem calc(0.7rem + env(safe-area-inset-bottom)); }
   .assistant-root .coach-composer textarea { font-size: 1rem; }
-  .assistant-root .coach-icon { width: 2.5rem; height: 2.5rem; }
+  .assistant-root .coach-icon { width: 2.75rem; height: 2.75rem; }
+  .assistant-root .coach-send { width: 2.75rem; height: 2.75rem; }
+  .assistant-root .coach-composer textarea { padding-right: 3.65rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .assistant-root *, .assistant-root *::before, .assistant-root *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

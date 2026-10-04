@@ -8,12 +8,15 @@ import { groupedMeals } from "../lib/dailyFood";
 import { fullDate } from "../lib/dates";
 import { entriesOn, formatMacro, nutritionTotal } from "../lib/nutrition";
 
-export default function DailyLogPage({ manager, deletingId, quickSaving, waterSaving, onAdd, onQuickSave, onEdit, onDelete, onWaterChange }) {
+export default function DailyLogPage({ manager, deletingId, deleteError, quickSaving, waterSaving, onAdd, onQuickSave, onEdit, onDelete, onWaterChange }) {
   const [pendingDelete, setPendingDelete] = useState(null);
   const dayEntries = useMemo(() => entriesOn(manager.entries, manager.selectedDate), [manager.entries, manager.selectedDate]);
   const totals = useMemo(() => nutritionTotal(dayEntries), [dayEntries]);
   const meals = useMemo(() => groupedMeals(dayEntries), [dayEntries]);
   const mealsLogged = meals.filter((meal) => meal.entries.length).length;
+  const macroTotal = key => dayEntries.some(entry => entry[key] != null) ? formatMacro(totals[key]) : "—";
+  const partialNutrition = dayEntries.some(entry => ["protein", "carbs", "fat"].some(key => entry[key] == null));
+  const estimatedNutrition = dayEntries.some(entry => entry.nutritionEstimated);
   async function confirmDelete() {
     if (pendingDelete && await onDelete(pendingDelete.id)) setPendingDelete(null);
   }
@@ -24,12 +27,13 @@ export default function DailyLogPage({ manager, deletingId, quickSaving, waterSa
 
     <section className="food-day-summary" aria-label="Recorded daily totals">
       <div><span>Logged</span><strong>{totals.calories.toLocaleString("en-IN")} <small>kcal</small></strong></div>
-      <div><span>Protein</span><strong>{formatMacro(totals.protein)} <small>g</small></strong></div>
-      <div><span>Carbs</span><strong>{formatMacro(totals.carbs)} <small>g</small></strong></div>
-      <div><span>Fat</span><strong>{formatMacro(totals.fat)} <small>g</small></strong></div>
-      <div className="water-stepper"><span>Water</span><span><button type="button" disabled={waterSaving || manager.water <= 0} onClick={() => onWaterChange(Math.max(0, manager.water - 1))} aria-label="Remove one glass of water"><Minus size={15} /></button><strong><Droplets size={15} />{manager.water}<small>/{manager.goal.waterGlasses}</small></strong><button type="button" disabled={waterSaving || manager.water >= manager.goal.waterGlasses} onClick={() => onWaterChange(manager.water + 1)} aria-label="Add one glass of water"><Plus size={15} /></button></span></div>
+      <div><span>Protein</span><strong>{macroTotal("protein")} <small>g</small></strong></div>
+      <div><span>Carbs</span><strong>{macroTotal("carbs")} <small>g</small></strong></div>
+      <div><span>Fat</span><strong>{macroTotal("fat")} <small>g</small></strong></div>
+      <div className="water-stepper"><span>Water</span><span><button type="button" disabled={waterSaving || manager.water <= 0} onClick={() => onWaterChange(Math.max(0, manager.water - 1))} aria-label="Remove one glass of water"><Minus size={15} /></button><strong><Droplets size={15} />{manager.water}<small>/{manager.goal.waterGlasses}</small></strong><button type="button" disabled={waterSaving || manager.water >= 30} onClick={() => onWaterChange(manager.water + 1)} aria-label="Add one glass of water"><Plus size={15} /></button></span></div>
     </section>
 
+    {(partialNutrition || estimatedNutrition) && <p className="food-nutrition-coverage">{partialNutrition ? "Some macros are unknown; totals include only recorded values. " : ""}{estimatedNutrition ? "Nutrition includes estimates. Select a food to review or correct it." : ""}</p>}
     <section className="food-ledger" aria-labelledby="food-ledger-title">
       <header><div><h2 id="food-ledger-title">What you had</h2><p>Select an item to edit it. Blank meals are simply unrecorded.</p></div></header>
       <div className="food-ledger__groups">{meals.map((meal) => {
@@ -41,6 +45,6 @@ export default function DailyLogPage({ manager, deletingId, quickSaving, waterSa
         </article>;
       })}</div>
     </section>
-    <ConfirmDialog open={Boolean(pendingDelete)} entry={pendingDelete} busy={deletingId === pendingDelete?.id} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />
+    <ConfirmDialog error={deleteError && deleteError.id === pendingDelete?.id ? deleteError.message : ""} open={Boolean(pendingDelete)} entry={pendingDelete} busy={deletingId === pendingDelete?.id} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />
   </div>;
 }

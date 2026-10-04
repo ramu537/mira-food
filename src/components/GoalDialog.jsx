@@ -1,10 +1,13 @@
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-export default function GoalDialog({ open, goal, busy, onClose, onSave }) {
+export default function GoalDialog({ open, goal, busy, error, onClose, onSave }) {
   const ref = useRef(null);
   const [form, setForm] = useState(goal);
   const [attempted, setAttempted] = useState(false);
+  useEffect(() => {
+    if (open && error) ref.current?.querySelector(".integration-error")?.scrollIntoView({ block: "nearest" });
+  }, [open, error]);
 
   useEffect(() => {
     if (open) { setForm(goal); setAttempted(false); }
@@ -33,23 +36,24 @@ export default function GoalDialog({ open, goal, busy, onClose, onSave }) {
   async function submit(event) {
     event.preventDefault();
     setAttempted(true);
-    if (!valid) return;
+    if (!valid || busy) return;
     await onSave(Object.fromEntries(Object.entries(form).map(([key, value]) => [key, Number(value)])));
   }
 
   return (
     <dialog
       ref={ref}
-      className="dialog goal-dialog"
+      className="dialog goal-dialog" aria-labelledby="food-goals-title"
       onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}
       onClick={(event) => { if (event.target === ref.current && !busy) onClose(); }}
     >
       <form className="dialog-card goal-form" onSubmit={submit} noValidate>
         <header className="dialog-header">
-          <div><span className="eyebrow">Personal targets</span><h2>Nutrition goals</h2><p>Use targets that suit you. This workspace does not provide medical advice.</p></div>
+          <div><span className="eyebrow">Personal targets</span><h2 id="food-goals-title">Nutrition goals</h2><p>Use targets that suit you. This workspace does not provide medical advice.</p></div>
           <button className="icon-button" type="button" onClick={onClose} disabled={busy} aria-label="Close goals form"><X size={20} /></button>
         </header>
         <div className="form-body">
+          {error && <p className="integration-error" role="alert">{error}</p>}
           <label className="field">
             <span>Daily calories</span>
             <span className="input-suffix"><input required type="number" inputMode="numeric" step="1" min="500" max="10000" value={form.calories} onChange={(event) => update("calories", event.target.value)} /><span>kcal</span></span>

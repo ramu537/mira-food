@@ -97,7 +97,7 @@
   .side-navigation { margin-top: 1.75rem; gap: 0.35rem; }
   .side-navigation a { min-height: 2.85rem; border-radius: 0.75rem; font-weight: 650; }
   .side-navigation a.active { box-shadow: inset 3px 0 0 var(--accent-strong); }
-  .sidebar-note { padding: 0.75rem; background: var(--ui-soft); box-shadow: none; }
+  .sidebar-note { display: none; }
   .sidebar-note small { line-height: 1.45; }
   .brand-mark { box-shadow: none; }
   .topbar { min-height: 4.6rem; gap: 0.55rem; padding: 0.75rem clamp(1rem, 2.3vw, 2rem); background: var(--ui-glass); border-color: var(--ui-line-soft); }
@@ -128,25 +128,57 @@
   .metric small, .metric-card small { color: var(--ui-muted); }
   .expense-row, .task-row, .food-row, .note-list-item { transition: background 150ms ease; }
   .expense-row:hover, .task-row:hover, .food-row:hover { background: var(--ui-soft); }
-  .text-input, .field input:not([type="checkbox"]):not([type="radio"]), .field select, .field textarea {
-    min-width: 0; min-height: 2.75rem; border: 1px solid var(--ui-line); border-radius: 0.65rem; background: var(--ui-surface); color: var(--ui-ink);
+  /* Plain controls own their border. Affixed/search controls delegate focus to the wrapper. */
+  .text-input, .field > input:not([type="checkbox"]):not([type="radio"]), .field > select, .field > textarea {
+    width: 100%; min-width: 0; min-height: 2.75rem; padding: 0.65rem 0.75rem; border: 1px solid var(--ui-line); border-radius: 0.65rem; background: var(--ui-surface); color: var(--ui-ink); font-size: 1rem; font-weight: 400; line-height: 1.5;
   }
-  .text-input:focus, .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--ui-focus); }
+  .text-input:focus, .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--ui-focus); box-shadow: none; }
+  .field > small, .integration-field > small { font-weight: 400; line-height: 1.5; }
+  :is(.input-affix, .input-suffix, .money-input, .budget-input, .search-field, .memory-search-input) {
+    min-width: 0; border: 1px solid var(--ui-line); background: var(--ui-surface); color: var(--ui-muted);
+  }
+  :is(.input-affix, .input-suffix, .money-input, .budget-input, .search-field, .memory-search-input):focus-within {
+    border-color: var(--ui-focus); background: var(--ui-surface); box-shadow: none;
+  }
+  :is(.input-affix, .input-suffix, .money-input, .budget-input, .search-field, .memory-search-input):has(input:focus) {
+    outline: 2px solid var(--ui-focus); outline-offset: 2px;
+  }
+  :is(.input-affix, .input-suffix, .money-input, .budget-input, .search-field, .memory-search-input) input,
+  :is(.input-affix, .input-suffix, .money-input, .budget-input, .search-field, .memory-search-input) input:focus,
+  :is(.input-affix, .input-suffix, .money-input, .budget-input, .search-field, .memory-search-input) input:focus-visible {
+    min-width: 0; border: 0; border-radius: 0; background: transparent; color: var(--ui-ink); outline: none; box-shadow: none;
+  }
+  :is(.input-affix, .input-suffix, .money-input, .budget-input):has(input[aria-invalid="true"]) { border-color: var(--ui-danger); }
+  .field > :is(input, textarea, select)[aria-invalid="true"] { border-color: var(--ui-danger); }
   .search-field, .filter-bar, .toolbar { border-color: var(--ui-line); background: var(--ui-surface); }
   .search-field input { color: var(--ui-ink); }
+  .app-column, .main-content, .page-stack, .panel, .form-body, .form-grid { min-width: 0; }
+  .page-heading > div, .dialog-header > div, .card-heading > div { min-width: 0; }
+  .page-heading h1, .panel h2, .dialog-header h2 { overflow-wrap: anywhere; }
+  .panel-header, .card-heading { flex-wrap: wrap; gap: 0.65rem; }
+  .form-actions, .dialog-actions { position: sticky; bottom: 0; z-index: 2; background: var(--ui-surface); border-top: 1px solid var(--ui-line-soft); }
+  .toast { bottom: calc(var(--ui-floating-bottom) + 4.25rem); overflow-wrap: anywhere; }
   input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-strong); }
   input[type="date"], input[type="number"] { color-scheme: inherit; }
-  .dialog { max-height: calc(100dvh - 2rem); color: var(--ui-ink); border-color: var(--ui-line); }
+  .dialog { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 1rem; overflow: auto; border: 0; background: transparent; color: var(--ui-ink); }
+  .dialog:not([open]) { display: none; }
+  .dialog[open] { display: grid; place-items: center; }
+  .dialog-card { margin: auto; text-align: left; }
+  .confirm-card, .confirm-dialog .dialog-card { text-align: center; }
   .dialog::backdrop { background: var(--ui-overlay); backdrop-filter: blur(4px); }
   .dialog-overlay { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 1rem; overflow-y: auto; background: var(--ui-overlay); backdrop-filter: blur(4px); }
   .dialog-card { min-width: 0; max-width: calc(100vw - 2rem); max-height: calc(100dvh - 2rem); overflow-y: auto; background: var(--ui-surface); color: var(--ui-ink); border: 1px solid var(--ui-line); border-radius: 1.15rem; box-shadow: var(--shadow-lg); }
-  .dialog-header { align-items: start; gap: 0.75rem; }
+  .dialog-header, .intelligence-dialog__header { position: sticky; top: 0; z-index: 3; background: var(--ui-surface); align-items: start; gap: 0.75rem; }
   .dialog-header h2, .intelligence-dialog__header h2 { font-size: 1.25rem; letter-spacing: -0.035em; }
   .dialog-footer { position: sticky; bottom: 0; background: var(--ui-surface); padding-block: 0.8rem; border-top: 1px solid var(--ui-line-soft); }
   .dialog-footer .button { min-height: 2.75rem; }
   .intelligence-dialog__body, .expense-intelligence-dialog__body, .food-intelligence-dialog__body, .habit-intelligence-dialog__body { gap: 0.85rem; }
   .intelligence-lead { box-shadow: none; }
   .page-state, .empty-state { color: var(--ui-muted); }
+  .empty-state { min-height: 12rem; padding: 1.5rem; }
+  .row-menu__popover { max-width: calc(100vw - 2rem); color: var(--ui-ink); background: var(--ui-surface); border-color: var(--ui-line); }
+  .row-menu__popover > button { min-height: 2.75rem; }
+  .search-field > button { display: grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; flex-shrink: 0; }
   .toast { z-index: 90; max-width: min(28rem, calc(100vw - 2rem)); }
   .theme-control { position: relative; flex: 0 0 auto; }
   .theme-control__trigger { border: 1px solid var(--ui-line); background: var(--ui-surface); color: var(--ui-muted); }
@@ -169,7 +201,7 @@
     .main-content { padding-inline: 1rem; }
   }
   @media (max-width: 52.5rem) {
-    :root { --ui-floating-bottom: calc(5.4rem + env(safe-area-inset-bottom)); }
+    :root { --ui-floating-bottom: calc(5.4rem + env(safe-area-inset-bottom)); --topbar-height: 4.1rem; }
     .sidebar { display: none; }
     .app-frame { display: block; }
     .app-column { min-width: 0; }
@@ -179,6 +211,8 @@
     .topbar-brand .brand-mark { width: 2rem; height: 2rem; }
     .topbar-brand .brand { padding: 0; gap: 0.5rem; }
     .topbar-actions { margin-left: 0; gap: 0.25rem; }
+    .topbar .icon-button { width: 2.75rem; height: 2.75rem; }
+    .topbar > .theme-control { margin-left: auto; }
     .topbar-add, .topbar-action, .topbar-capture, .topbar-user, .refresh-button { display: none; }
     .topbar > .date-control, .topbar > .month-control { order: 5; flex: 1 0 100%; margin: 0; }
     .main-content { padding: 1.2rem 0.8rem calc(10rem + env(safe-area-inset-bottom)); }
@@ -193,7 +227,8 @@
     .metric-grid { gap: 0.6rem; }
     .metric, .metric-card { padding: 0.8rem; }
     .dialog-overlay { padding: 0.65rem; align-items: center; }
-    .dialog, .dialog-card { max-width: calc(100vw - 1.3rem); max-height: calc(100dvh - 1.3rem); }
+    .dialog { padding: 0.65rem; }
+    .dialog-card { max-width: calc(100vw - 1.3rem); max-height: calc(100dvh - 1.3rem); }
     .dialog-header, .dialog-footer { gap: 0.65rem; }
     .text-input, input, select, textarea { font-size: 1rem; }
     .theme-control__panel { right: -0.2rem; }
@@ -228,7 +263,8 @@
   .integration-dialog--wide { width: min(42rem, calc(100vw - 2rem)); }
   .integration-dialog::backdrop { background: var(--ui-overlay); backdrop-filter: blur(4px); }
   .integration-card { display: flex; flex-direction: column; width: 100%; max-width: none; max-height: calc(100dvh - 2rem); padding: 0; text-align: left; }
-  .integration-header { display: flex; align-items: start; gap: 0.75rem; padding: 1.2rem 1.25rem; border-bottom: 1px solid var(--ui-line-soft); flex-shrink: 0; }
+  .integration-header { position: sticky; top: 0; z-index: 3; background: var(--ui-surface); display: flex; align-items: start; gap: 0.75rem; padding: 1.2rem 1.25rem; border-bottom: 1px solid var(--ui-line-soft); flex-shrink: 0; }
+  .integration-card > .inline-notice { margin: 1rem 1.25rem 0; }
   .integration-header > div { flex: 1; min-width: 0; }
   .integration-header h2 { margin: 0; font-size: 1.15rem; font-weight: 750; letter-spacing: -0.025em; line-height: 1.3; color: var(--ui-ink); }
   .integration-header p { margin: 0.3rem 0 0; color: var(--ui-muted); font-size: 0.8rem; line-height: 1.6; }
@@ -250,9 +286,9 @@
   .capture-previews:empty { display: none; }
   .capture-previews figure { position: relative; margin: 0; width: 6.25rem; border: 1px solid var(--ui-line); border-radius: 0.65rem; overflow: hidden; }
   .capture-previews img { display: block; width: 100%; height: 5rem; object-fit: cover; }
-  .capture-previews button { position: absolute; top: 0.2rem; right: 0.2rem; display: grid; place-items: center; width: 1.75rem; height: 1.75rem; padding: 0; border: 1px solid var(--ui-line); border-radius: 0.5rem; background: var(--ui-surface); color: var(--ui-ink); }
+  .capture-previews button { position: absolute; top: 0.2rem; right: 0.2rem; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; border: 1px solid var(--ui-line); border-radius: 0.5rem; background: var(--ui-surface); color: var(--ui-ink); }
   .capture-previews figcaption { overflow: hidden; padding: 0.3rem 0.4rem; background: var(--ui-soft); color: var(--ui-muted); font-size: 0.63rem; white-space: nowrap; text-overflow: ellipsis; }
-  .integration-error { padding: 0.75rem; border: 1px solid color-mix(in oklch, var(--ui-danger) 30%, var(--ui-line)); border-radius: 0.7rem; background: var(--ui-danger-soft); color: var(--ui-danger); font-size: 0.8rem; overflow-wrap: anywhere; }
+  .integration-error { scroll-margin-block: 7rem 1rem; padding: 0.75rem; border: 1px solid color-mix(in oklch, var(--ui-danger) 30%, var(--ui-line)); border-radius: 0.7rem; background: var(--ui-danger-soft); color: var(--ui-danger); font-size: 0.8rem; overflow-wrap: anywhere; }
   .integration-error p { margin: 0 0 0.65rem; }
   .capture-footer { display: flex; gap: 1rem; align-items: center; justify-content: space-between; padding-top: 0.85rem; border-top: 1px solid var(--ui-line-soft); }
   .capture-footer > p { margin: 0; color: var(--ui-muted); font-size: 0.7rem; line-height: 1.55; max-width: 19rem; }
@@ -268,7 +304,7 @@
   .memory-search-input:focus-within { border-color: var(--accent-strong); }
   .memory-search-input input { width: 100%; min-width: 0; border: 0; padding: 0.4rem 0; background: transparent; color: var(--ui-ink); font-size: 0.9rem; }
   .memory-filters { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-  .memory-filters button { min-height: 2rem; padding: 0.3rem 0.65rem; border: 1px solid var(--ui-line); border-radius: 2rem; background: var(--ui-surface); color: var(--ui-muted); font-size: 0.7rem; }
+  .memory-filters button { min-height: 2.75rem; padding: 0.3rem 0.65rem; border: 1px solid var(--ui-line); border-radius: 2rem; background: var(--ui-surface); color: var(--ui-muted); font-size: 0.7rem; }
   .memory-filters button[aria-pressed="true"] { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent-strong); font-weight: 650; }
   .memory-results { display: grid; gap: 0.7rem; min-height: 10rem; overflow: auto; overscroll-behavior: contain; padding: 1rem 1.25rem; }
   .memory-state { display: grid; justify-items: center; align-content: center; gap: 0.6rem; min-height: 13rem; padding: 1rem; text-align: center; color: var(--ui-muted); }
@@ -288,6 +324,7 @@
     .integration-dialog, .integration-dialog--wide { width: calc(100vw - 1.2rem); max-height: calc(100dvh - 1.2rem); }
     .integration-card { max-height: calc(100dvh - 1.2rem); }
     .integration-header { padding: 1rem; }
+    .capture-previews button { width: 2.75rem; height: 2.75rem; }
     .capture-form, .memory-search-controls, .memory-results { padding: 1rem; }
     .capture-footer { flex-direction: column; align-items: stretch; gap: 0.8rem; }
     .capture-footer > p { max-width: none; }
@@ -305,7 +342,10 @@
   .chart-tooltip, .recharts-default-tooltip { border-color: var(--ui-line); background: var(--ui-surface); color: var(--ui-ink); }
   .chart-data, .data-table { overflow-x: auto; }
   @media (min-width: 52.501rem) {
-    .sidebar { display: flex; }
+    .sidebar { display: flex; align-items: stretch; }
+    .sidebar .brand-copy { display: grid; }
+    .side-navigation span { display: inline; }
+    .side-navigation a { width: auto; justify-content: flex-start; padding-inline: .85rem; }
     .app-frame { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); }
     .app-column { grid-column: 2; }
     .topbar-brand, .mobile-navigation, .mobile-only-actions { display: none; }

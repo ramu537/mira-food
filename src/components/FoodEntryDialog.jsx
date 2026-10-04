@@ -14,10 +14,13 @@ function validMacro(value) {
   return Number.isFinite(numeric) && numeric >= 0 && numeric <= 99999.99 && decimalPlaces <= 2;
 }
 
-export default function FoodEntryDialog({ open, entry, date, initialMeal, earliestDate, today, busy, onClose, onSave }) {
+export default function FoodEntryDialog({ open, entry, date, initialMeal, earliestDate, today, busy, error, onClose, onSave }) {
   const ref = useRef(null);
   const [form, setForm] = useState(() => blankEntry(date, initialMeal));
   const [attempted, setAttempted] = useState(false);
+  useEffect(() => {
+    if (open && error) ref.current?.querySelector(".integration-error")?.scrollIntoView({ block: "nearest" });
+  }, [open, error]);
 
   useEffect(() => {
     if (!open) return;
@@ -42,6 +45,8 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  const caloriesValid = Number.isInteger(Number(form.calories)) && Number(form.calories) >= 1 && Number(form.calories) <= 20000;
+  const dateValid = Boolean(form.loggedOn) && form.loggedOn >= earliestDate && form.loggedOn <= today;
   const valid = useMemo(() => (
     form.name.trim().length > 0
     && Number.isInteger(Number(form.calories))
@@ -59,8 +64,16 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
 
   async function submit(event) {
     event.preventDefault();
+    if (busy) return;
     setAttempted(true);
-    if (!valid) return;
+    if (!valid) {
+      const invalid = !form.name.trim() ? ref.current.querySelector('input[maxlength="120"]')
+        : !caloriesValid ? ref.current.querySelector('.input-suffix input')
+        : !dateValid ? ref.current.querySelector('input[type="date"]')
+        : ref.current.querySelector(`input[name="${["protein", "carbs", "fat"].find(key => !validMacro(form[key]))}"]`);
+      invalid?.focus();
+      return;
+    }
     await onSave({
       name: form.name.trim(),
       meal: form.meal,
@@ -77,17 +90,18 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
   return (
     <dialog
       ref={ref}
-      className="dialog food-dialog"
+      className="dialog food-dialog" aria-labelledby="food-form-title"
       onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}
       onClick={(event) => { if (event.target === ref.current && !busy) onClose(); }}
     >
-      <form className="dialog-card food-form" onSubmit={submit} noValidate>
+      <form className="dialog-card food-form" onSubmit={submit} noValidate onKeyDown={event => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); event.currentTarget.requestSubmit(); } }}>
         <header className="dialog-header">
-          <div><span className="eyebrow">Your food log</span><h2>{entry ? "Edit food" : "Log food"}</h2><p>Include the portion. Nutrition values are estimates unless you have packaging; Leave unknown macros blank; they are stored as unknown, not zero.</p></div>
+          <div><span className="eyebrow">Your food log</span><h2 id="food-form-title">{entry ? "Edit food" : "Log food"}</h2><p>Include the portion. Leave unknown macros blank; you can correct estimates any time.</p></div>
           <button className="icon-button" type="button" onClick={onClose} disabled={busy} aria-label="Close food form"><X size={20} /></button>
         </header>
 
         <div className="form-body">
+          {error && <p className="integration-error" role="alert">{error}</p>}
           <label className="field">
             <span>Food & portion</span>
             <input
@@ -135,15 +149,16 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
                   placeholder="320"
                   value={form.calories}
                   onChange={(event) => update("calories", event.target.value)}
-                  aria-invalid={attempted && !(Number(form.calories) >= 1 && Number(form.calories) <= 20000)}
+                  aria-invalid={attempted && !caloriesValid} aria-describedby={attempted && !caloriesValid ? "food-calories-error" : undefined}
                 />
                 <span>kcal</span>
               </span>
-              {attempted && !(Number(form.calories) >= 1 && Number(form.calories) <= 20000) && <small className="field-error">Enter 1–20,000 calories.</small>}
+              {attempted && !caloriesValid && <small className="field-error" id="food-calories-error" role="alert">Enter a whole number from 1 to 20,000 calories.</small>}
             </label>
             <label className="field">
               <span>Date</span>
-              <input type="date" min={earliestDate} max={today} value={form.loggedOn} onChange={(event) => update("loggedOn", event.target.value)} />
+              <input type="date" min={earliestDate} max={today} value={form.loggedOn} onChange={(event) => update("loggedOn", event.target.value)} aria-invalid={attempted && !dateValid} aria-describedby={attempted && !dateValid ? "food-date-error" : undefined} />
+              {attempted && !dateValid && <small className="field-error" id="food-date-error" role="alert">Choose a date between {earliestDate} and {today}.</small>}
             </label>
           </div>
 
@@ -157,7 +172,7 @@ export default function FoodEntryDialog({ open, entry, date, initialMeal, earlie
               ].map(([key, label]) => (
                 <label className="field" key={key}>
                   <span>{label}</span>
-                  <input type="number" inputMode="decimal" min="0" max="99999.99" step="0.01" placeholder="Unknown" value={form[key]} onChange={(event) => update(key, event.target.value)} aria-invalid={attempted && !validMacro(form[key])} />
+                  <input name={key} type="number" inputMode="decimal" min="0" max="99999.99" step="0.01" placeholder="Unknown" value={form[key]} onChange={(event) => update(key, event.target.value)} aria-invalid={attempted && !validMacro(form[key])} />
                 </label>
               ))}
             </div>

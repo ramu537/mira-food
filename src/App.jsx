@@ -104,9 +104,12 @@ function FoodWorkspace({ user, onLogout }) {
   const [initialMeal, setInitialMeal] = useState(null);
   const [initialDate, setInitialDate] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [waterSaving, setWaterSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
+  useEffect(() => { setDeleteError(null); }, [user?.uid]);
   const closeToast = useCallback(() => setToast(null), []);
 
   useEffect(() => {
@@ -121,6 +124,7 @@ function FoodWorkspace({ user, onLogout }) {
   }, []);
 
   function openManualCreate(meal = null, date = null) {
+    setSaveError("");
     setEditingEntry(null);
     setInitialMeal(meal);
     setInitialDate(date);
@@ -132,6 +136,7 @@ function FoodWorkspace({ user, onLogout }) {
   }
 
   function openEdit(entry) {
+    setSaveError("");
     setEditingEntry(entry);
     setInitialMeal(entry.meal);
     setInitialDate(entry.loggedOn);
@@ -147,6 +152,7 @@ function FoodWorkspace({ user, onLogout }) {
   }
 
   async function saveEntry(payload) {
+    setSaveError("");
     setSaving(true);
     try {
       await manager.actions.saveEntry(payload, editingEntry?.id);
@@ -157,6 +163,7 @@ function FoodWorkspace({ user, onLogout }) {
       setInitialDate(null);
       return true;
     } catch (error) {
+      setSaveError(error.message || "Could not save. Your input is kept.");
       setToast({ tone: "error", message: error.message });
       return false;
     } finally {
@@ -165,12 +172,14 @@ function FoodWorkspace({ user, onLogout }) {
   }
 
   async function deleteEntry(id) {
+    setDeleteError(null);
     setDeletingId(id);
     try {
       await manager.actions.deleteEntry(id);
       setToast({ tone: "success", message: "Food entry deleted." });
       return true;
     } catch (error) {
+      setDeleteError({ id, message: error.message || "Could not delete. Your record is kept." });
       setToast({ tone: "error", message: error.message });
       return false;
     } finally {
@@ -179,12 +188,13 @@ function FoodWorkspace({ user, onLogout }) {
   }
 
   async function saveGoal(payload) {
-    setSaving(true);
+    setSaveError(""); setSaving(true);
     try {
       await manager.actions.saveGoal(payload);
       setGoalDialogOpen(false);
       setToast({ tone: "success", message: "Nutrition goals updated." });
     } catch (error) {
+      setSaveError(error.message || "Could not save your targets.");
       setToast({ tone: "error", message: error.message });
     } finally {
       setSaving(false);
@@ -210,9 +220,9 @@ function FoodWorkspace({ user, onLogout }) {
   else if (!manager.ready && manager.loadError) content = <ErrorState message={manager.loadError} onRetry={manager.retry} />;
   else content = (
     <Routes>
-      <Route path="/" element={<DailyLogPage key={user.uid} manager={manager} deletingId={deletingId} quickSaving={saving} waterSaving={waterSaving} onAdd={openCreate} onQuickSave={saveEntry} onEdit={openEdit} onDelete={deleteEntry} onWaterChange={changeWater} />} />
+      <Route path="/" element={<DailyLogPage key={user.uid} manager={manager} deleteError={deleteError} deletingId={deletingId} quickSaving={saving} waterSaving={waterSaving} onAdd={openCreate} onQuickSave={saveEntry} onEdit={openEdit} onDelete={deleteEntry} onWaterChange={changeWater} />} />
       <Route path="/trends" element={<TrendsPage entries={manager.entries} goal={manager.goal} today={manager.today} />} />
-      <Route path="/settings" element={<FoodSettingsPage onSave={manager.actions.saveProfile} onEditTargets={() => setGoalDialogOpen(true)} />} />
+      <Route path="/settings" element={<FoodSettingsPage onSave={manager.actions.saveProfile} onEditTargets={() => { setSaveError(""); setGoalDialogOpen(true); }} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -231,8 +241,8 @@ function FoodWorkspace({ user, onLogout }) {
         {manager.ready && manager.loadError && <div className="food-refresh-warning" role="alert"><p>Food records could not be refreshed. The log and trends may be out of date.</p><button className="button button--secondary" type="button" disabled={manager.loading} onClick={manager.retry}>{manager.loading ? "Refreshing…" : "Refresh records"}</button></div>}
         {content}
       </AppShell>
-      <FoodEntryDialog open={entryDialogOpen} entry={editingEntry} date={initialDate || manager.selectedDate} initialMeal={initialMeal} earliestDate={manager.earliestDate} today={manager.today} busy={saving} onClose={closeEntryDialog} onSave={saveEntry} />
-      <GoalDialog open={goalDialogOpen} goal={manager.goal} busy={saving} onClose={() => { if (!saving) setGoalDialogOpen(false); }} onSave={saveGoal} />
+      <FoodEntryDialog open={entryDialogOpen} entry={editingEntry} date={initialDate || manager.selectedDate} initialMeal={initialMeal} earliestDate={manager.earliestDate} today={manager.today} busy={saving} error={saveError} onClose={closeEntryDialog} onSave={saveEntry} />
+      <GoalDialog open={goalDialogOpen} goal={manager.goal} busy={saving} error={saveError} onClose={() => { if (!saving) setGoalDialogOpen(false); }} onSave={saveGoal} />
       <FoodIntelligenceDialog userId={user.uid} open={intelligenceOpen} manager={manager} onClose={() => setIntelligenceOpen(false)} />
       <AiFoodCaptureModal
         onManual={() => { setAiCaptureOpen(false); openManualCreate(initialMeal, initialDate || manager.selectedDate); }}

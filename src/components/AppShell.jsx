@@ -30,16 +30,10 @@ function Navigation({ mobile = false }) {
   );
 }
 
-export default function AppShell({ manager, onAdd, onOpenIntelligence, onOpenAiCapture, onOpenAiSearch, user, onLogout, children }) {
+export default function AppShell({ manager, onOpenIntelligence, onOpenAiCapture, onOpenAiSearch, user, onLogout, children }) {
   const location = useLocation();
   const dailyRoute = location.pathname === "/";
   const initialLetter = (user?.displayName || user?.email || "U").charAt(0).toUpperCase();
-
-  function openGlobalAdd() {
-    const date = dailyRoute ? manager.selectedDate : manager.today;
-    if (!dailyRoute) manager.selectDate(manager.today);
-    onAdd(null, date);
-  }
 
   return (
     <div className="app-frame">
@@ -91,9 +85,6 @@ export default function AppShell({ manager, onAdd, onOpenIntelligence, onOpenAiC
           <ThemeControl />
             <button className="icon-button" type="button" onClick={onOpenAiSearch} aria-label="Search memory" title="AI Vector Memory Search (Ctrl+K)"><Search size={18} /></button>
           <button className="icon-button topbar-intelligence" type="button" onClick={onOpenIntelligence} aria-label="Open food intelligence" title="Food intelligence"><Sparkles size={18} /></button>
-          <button className="button button--ghost topbar-capture" type="button" onClick={openGlobalAdd} aria-label="Enter food manually" title="Manual nutrition entry — optional">
-            <Plus size={17} /> <span>Manual entry</span>
-          </button>
           <NavLink className={({ isActive }) => isActive ? "icon-button topbar-settings is-active" : "icon-button topbar-settings"} to="/settings" aria-label="Goals and preferences" title="Goals & preferences"><Settings2 size={18} /></NavLink>
           <button className="button button--primary topbar-add" type="button" onClick={onOpenAiCapture}>
             <Plus size={18} strokeWidth={2.4} /> Log food
@@ -117,9 +108,6 @@ export default function AppShell({ manager, onAdd, onOpenIntelligence, onOpenAiC
         <main className="main-content">{children}</main>
         <Navigation mobile />
         <div className="mobile-only-actions">
-          <button className="mobile-add mobile-capture" type="button" onClick={openGlobalAdd} aria-label="Enter food manually">
-            <Plus size={22} strokeWidth={2.2} />
-          </button>
           <button className="mobile-add" type="button" onClick={onOpenAiCapture} aria-label="Log food with text or photo">
             <Plus size={24} strokeWidth={2.4} />
           </button>

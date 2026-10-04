@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 export default function Toast({ toast, onClose }) {
   useEffect(() => {
-    if (!toast) return undefined;
+    if (!toast || toast.tone === "error") return undefined;
     const timer = window.setTimeout(onClose, 4200);
     return () => window.clearTimeout(timer);
   }, [onClose, toast]);

@@ -101,15 +101,18 @@ export default function QuickFoodLog({ entries, date, busy, onSave, onRefresh })
     <form onSubmit={submit} noValidate onKeyDown={event => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); event.currentTarget.requestSubmit(); } }}>
       <div className="quick-log__main">
         <label><span>Food & portion</span><input ref={nameRef} maxLength="3000" placeholder="Lunch: 2 rotis, dal and a bowl of curd" value={form.name} onChange={(event) => update("name", event.target.value)} disabled={busy || capturing} /></label>
-        <label className="quick-calories"><span>Calories <small>Optional</small></span><span><input type="number" inputMode="numeric" min="1" max="20000" step="1" placeholder="AI estimate" value={form.calories} onChange={(event) => update("calories", event.target.value)} disabled={busy || capturing} /><small>kcal</small></span></label>
         <button className="button button--primary" type="submit" disabled={busy || capturing}>{form.calories ? <Plus size={17} /> : <Sparkles size={17} />}{busy || capturing ? "Saving…" : "Log food"}</button>
       </div>
-      <fieldset className="quick-meals"><legend>Meal</legend>{mealTypes.map((meal) => <button key={meal.value} type="button" className={form.meal === meal.value ? "is-selected" : ""} aria-pressed={form.meal === meal.value} onClick={() => update("meal", meal.value)}>{meal.label}</button>)}</fieldset>
-      <button className="quick-details-toggle" type="button" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((value) => !value)}><ChevronDown size={16} /> Optional nutrition details</button>
-      {detailsOpen && <div className="quick-macros">{[["protein", "Protein"], ["carbs", "Carbs"], ["fat", "Fat"]].map(([key, label]) => <label key={key}><span>{label}</span><span><input type="number" inputMode="decimal" min="0" max="99999.99" step="0.01" placeholder="0" value={form[key]} onChange={(event) => update(key, event.target.value)} /><small>g</small></span></label>)}</div>}
-      {detailsOpen && <label className="food-estimate-toggle"><input type="checkbox" checked={form.nutritionEstimated} onChange={(event) => update("nutritionEstimated", event.target.checked)} /><span>Nutrition or portion is estimated</span></label>}
+      <fieldset className="quick-meals"><legend>Meal</legend>{mealTypes.map((meal) => <button key={meal.value} type="button" disabled={busy || capturing} className={form.meal === meal.value ? "is-selected" : ""} aria-pressed={form.meal === meal.value} onClick={() => update("meal", meal.value)}>{meal.label}</button>)}</fieldset>
+      <button className="quick-details-toggle" type="button" aria-controls="quick-food-details" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((value) => !value)}><ChevronDown size={16} /> Optional nutrition details</button>
+      <div id="quick-food-details" hidden={!detailsOpen}>
+      {detailsOpen && <label className="quick-calories"><span>Calories · optional, if known</span><span><input type="number" inputMode="numeric" min="1" max="20000" step="1" placeholder="Leave blank for AI" value={form.calories} onChange={(event) => update("calories", event.target.value)} disabled={busy || capturing} /><small>kcal</small></span></label>}
+      {detailsOpen && <div className="quick-macros">{[["protein", "Protein"], ["carbs", "Carbs"], ["fat", "Fat"]].map(([key, label]) => <label key={key}><span>{label}</span><span><input type="number" inputMode="decimal" min="0" max="99999.99" step="0.01" placeholder="Unknown" disabled={busy || capturing} value={form[key]} onChange={(event) => update(key, event.target.value)} /><small>g</small></span></label>)}</div>}
+      {detailsOpen && <label className="food-estimate-toggle"><input type="checkbox" disabled={busy || capturing} checked={form.nutritionEstimated} onChange={(event) => update("nutritionEstimated", event.target.checked)} /><span>Nutrition or portion is estimated</span></label>}
+      </div>
       {error && <p className="quick-log__error" role="alert">{error}</p>}
     </form>
+    {!!jobs.length && <details className="quick-captures"><summary>{jobs.filter(job => capturePhase(job.result) !== "complete").length ? "Saved captures · processing and retry status" : "Recent capture receipts"} ({jobs.length})</summary>
     {jobs.map(job => {
       const phase = capturePhase(job.result);
       return <div key={job.id} className="quick-log-capture" role="status">
@@ -121,6 +124,7 @@ export default function QuickFoodLog({ entries, date, busy, onSave, onRefresh })
         {(["failed", "review"].includes(phase) || job.paused) && <button className="button button--secondary" type="button" disabled={busy || capturing} onClick={() => retryJob(job)}>Check / retry saved capture</button>}
       </div>;
     })}
-    {!!recent.length && <div className="recent-foods"><span><RotateCcw size={14} /> Recently logged</span><div>{recent.map((item) => <button type="button" key={item.name.toLocaleLowerCase()} onClick={() => reuse(item)} title={`Prepare ${item.name} for logging`}><strong>{item.name}</strong><small>{Number(item.calories).toLocaleString("en-IN")} kcal</small></button>)}</div></div>}
+    </details>}
+    {!!recent.length && <div className="recent-foods"><span><RotateCcw size={14} /> Recently logged</span><div>{recent.map((item) => <button type="button" disabled={busy || capturing} key={item.name.toLocaleLowerCase()} onClick={() => reuse(item)} title={`Prepare ${item.name} for logging`}><strong>{item.name}</strong><small>{Number(item.calories).toLocaleString("en-IN")} kcal</small></button>)}</div></div>}
   </section>;
 }
