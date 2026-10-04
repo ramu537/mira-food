@@ -26,7 +26,7 @@ export default function FoodSettingsPage({ onSave, onEditTargets }) {
   }, [blocker, busy]);
   useEffect(() => {
     let active = true; live.current = true;
-    setError(""); setForm(null);
+    setError(""); setSaved(false); setForm(null);
     foodApi.getProfile().then((value) => {
       if (!active) return;
       const next = profileForm(value); setForm(next); setBaseline(JSON.stringify(next));
@@ -41,7 +41,7 @@ export default function FoodSettingsPage({ onSave, onEditTargets }) {
   const update = (key, value) => { setForm((current) => ({ ...current, [key]: value })); setSaved(false); };
   async function submit(event) {
     event.preventDefault();
-    if (lock.current) return;
+    if (lock.current || busy || !dirty || !form) return;
     try { new Intl.DateTimeFormat("en", { timeZone: form.timeZone || "Asia/Kolkata" }).format(); }
     catch { setError("Use a valid time zone such as Asia/Kolkata."); return; }
     lock.current = true; setBusy(true); setError(""); setSaved(false);
@@ -83,7 +83,12 @@ export default function FoodSettingsPage({ onSave, onEditTargets }) {
           <button type="button" className="food-text-button" onClick={() => { if (window.confirm("Clear this profile’s fields? Nothing changes on the server until you save.")) { setForm({ ...emptyFoodProfile, allergies: [], version: form.version }); setSaved(false); } }}>Clear profile fields</button>
         </section>
       </fieldset>
-      <footer className="settings-save-bar"><div>{error ? <><p className="form-error" role="alert">{error}</p><button type="button" className="food-text-button" disabled={busy} onClick={() => { if (window.confirm("Reload saved preferences and replace this unsaved draft? Copy any changes you want to keep first.")) setAttempt((value) => value + 1); }}>Reload saved preferences</button></> : <p role="status">{busy ? "Saving…" : saved ? "Preferences saved. Food guidance is refreshing." : dirty ? "Unsaved changes" : "Your preferences are up to date."}</p>}</div><button className="button button--primary" type="submit" disabled={busy || !dirty}><Save size={16} />Save preferences</button></footer>
+      {(dirty || busy || saved || error) && (
+        <footer className="settings-save-bar">
+          <div>{error ? <><p className="form-error" role="alert">{error}</p><button type="button" className="food-text-button" disabled={busy} onClick={() => { if (window.confirm("Reload saved preferences and replace this unsaved draft? Copy any changes you want to keep first.")) setAttempt((value) => value + 1); }}>Reload saved preferences</button></> : <p role="status">{busy ? "Saving…" : saved ? "Preferences saved." : "Unsaved changes"}</p>}</div>
+          {(dirty || busy) && <button className="button button--primary" type="submit" disabled={busy || !dirty}><Save size={16} />{busy ? "Saving…" : "Save preferences"}</button>}
+        </footer>
+      )}
     </form>
   </div>;
 }

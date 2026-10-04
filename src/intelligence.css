@@ -162,7 +162,7 @@
   .food-care-note { display: flex; gap: .65rem; align-items: start; font-size: .9375rem; line-height: 1.65; padding: 1rem; border-radius: .5rem; background: var(--surface-2); color: var(--text-secondary); }
   .food-care-note svg { flex-shrink: 0; margin-top: .2rem; }
   .settings-privacy { font-size: .875rem; line-height: 1.65; color: var(--text-secondary); }
-  .settings-save-bar { margin-right: 4.25rem; position: sticky; bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; margin-top: 1rem; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-glass); backdrop-filter: blur(20px); box-shadow: var(--shadow-sm); }
+  .settings-save-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; margin-top: 1rem; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-raised); }
   .settings-save-bar p { font-size: .875rem; line-height: 1.5; }
   .food-settings-state { padding: 1.5rem; }
   .food-settings-state p { margin-bottom: 1rem; }
@@ -187,7 +187,6 @@
     .topbar-context { justify-content: center; }
     .mobile-navigation { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .mobile-navigation a { font-size: .8125rem; }
-    .settings-save-bar { bottom: calc(5.3rem + env(safe-area-inset-bottom)); }
   }
   @media (max-width: 680px) {
     .quick-log { padding: .85rem; }
