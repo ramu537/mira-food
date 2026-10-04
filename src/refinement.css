@@ -1,4 +1,18 @@
-@layer refinement { :root { --ui-product-hue: 105; } }
+@layer refinement {
+  .capture-entry-options { display: grid; gap: 0.6rem; margin-bottom: 0.75rem; color: var(--ui-muted); font-size: 0.85rem; }
+  .capture-entry-options .button { justify-self: start; }
+  .capture-background { padding-block: 0.75rem; color: var(--ui-text); font-size: 0.85rem; overflow-wrap: anywhere; }
+  .capture-background + .capture-background { border-top: 1px solid var(--ui-line); }
+  .capture-background .button { margin-top: 0.5rem; }
+
+  .capture-options, .entry-options { border: 1px solid var(--ui-line); border-radius: var(--radius-sm); padding: 0.85rem; background: var(--ui-soft); }
+  .capture-options > summary, .entry-options > summary { cursor: pointer; color: var(--ui-text); font-size: 0.85rem; font-weight: 600; }
+  .capture-options[open] > summary, .entry-options[open] > summary { margin-bottom: 1rem; }
+  .entry-options > .field, .entry-options > .form-grid, .entry-options > fieldset, .entry-options > details { margin-block: 1rem; }
+  .quick-log-capture { margin-top: 0.85rem; padding: 0.85rem; border: 1px solid var(--ui-line); border-radius: var(--radius-sm); background: var(--ui-soft); color: var(--ui-text); font-size: 0.85rem; }
+  .quick-log-capture small { color: var(--ui-muted); }
+  .quick-log-capture .button { margin-top: 0.6rem; }
+ :root { --ui-product-hue: 105; } }
 /* Product-wide finish. This layer follows each application's existing component layers. */
 @layer refinement {
   :root {

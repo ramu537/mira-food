@@ -20,7 +20,7 @@ export default function DailyLogPage({ manager, deletingId, quickSaving, waterSa
   return <div className="food-log-workspace">
     <header className="food-log-heading"><div><h1>{manager.selectedDate === manager.today ? "Today’s food" : "Food log"}</h1><p>{fullDate(manager.selectedDate, manager.selectedDate !== manager.today)} · {dayEntries.length} {dayEntries.length === 1 ? "item" : "items"} across {mealsLogged} {mealsLogged === 1 ? "meal" : "meals"}</p></div></header>
 
-    <QuickFoodLog entries={manager.entries} date={manager.selectedDate} busy={quickSaving || manager.loading} onSave={onQuickSave} />
+    <QuickFoodLog entries={manager.entries} date={manager.selectedDate} busy={quickSaving || manager.loading} onSave={onQuickSave} onRefresh={manager.retry} />
 
     <section className="food-day-summary" aria-label="Recorded daily totals">
       <div><span>Logged</span><strong>{totals.calories.toLocaleString("en-IN")} <small>kcal</small></strong></div>

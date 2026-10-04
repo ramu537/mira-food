@@ -120,11 +120,15 @@ function FoodWorkspace({ user, onLogout }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  function openCreate(meal = null, date = null) {
+  function openManualCreate(meal = null, date = null) {
     setEditingEntry(null);
     setInitialMeal(meal);
     setInitialDate(date);
     setEntryDialogOpen(true);
+  }
+
+  function openCreate(meal = null, date = null) {
+    setInitialMeal(meal); setInitialDate(date || manager.selectedDate); setAiCaptureOpen(true);
   }
 
   function openEdit(entry) {
@@ -206,7 +210,7 @@ function FoodWorkspace({ user, onLogout }) {
   else if (!manager.ready && manager.loadError) content = <ErrorState message={manager.loadError} onRetry={manager.retry} />;
   else content = (
     <Routes>
-      <Route path="/" element={<DailyLogPage manager={manager} deletingId={deletingId} quickSaving={saving} waterSaving={waterSaving} onAdd={openCreate} onQuickSave={saveEntry} onEdit={openEdit} onDelete={deleteEntry} onWaterChange={changeWater} />} />
+      <Route path="/" element={<DailyLogPage key={user.uid} manager={manager} deletingId={deletingId} quickSaving={saving} waterSaving={waterSaving} onAdd={openCreate} onQuickSave={saveEntry} onEdit={openEdit} onDelete={deleteEntry} onWaterChange={changeWater} />} />
       <Route path="/trends" element={<TrendsPage entries={manager.entries} goal={manager.goal} today={manager.today} />} />
       <Route path="/settings" element={<FoodSettingsPage onSave={manager.actions.saveProfile} onEditTargets={() => setGoalDialogOpen(true)} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -217,9 +221,9 @@ function FoodWorkspace({ user, onLogout }) {
     <>
       <AppShell
         manager={manager}
-        onAdd={openCreate}
+        onAdd={openManualCreate}
         onOpenIntelligence={() => setIntelligenceOpen(true)}
-        onOpenAiCapture={() => setAiCaptureOpen(true)}
+        onOpenAiCapture={() => openCreate()}
         onOpenAiSearch={() => setAiSearchOpen(true)}
         user={user}
         onLogout={onLogout}
@@ -231,8 +235,11 @@ function FoodWorkspace({ user, onLogout }) {
       <GoalDialog open={goalDialogOpen} goal={manager.goal} busy={saving} onClose={() => { if (!saving) setGoalDialogOpen(false); }} onSave={saveGoal} />
       <FoodIntelligenceDialog userId={user.uid} open={intelligenceOpen} manager={manager} onClose={() => setIntelligenceOpen(false)} />
       <AiFoodCaptureModal
+        onManual={() => { setAiCaptureOpen(false); openManualCreate(initialMeal, initialDate || manager.selectedDate); }}
+        key={user.uid}
         open={aiCaptureOpen}
-        initialDate={manager.selectedDate}
+        initialDate={initialDate || manager.selectedDate}
+        initialMeal={initialMeal}
         onClose={() => setAiCaptureOpen(false)}
         onSuccess={(msg) => {
           manager.retry();
