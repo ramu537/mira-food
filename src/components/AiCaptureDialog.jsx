@@ -3,8 +3,10 @@ import { Camera, CheckCircle2, LoaderCircle, RefreshCw, Sparkles, X } from "luci
 import { captureApi } from "../api/captures";
 import { acceptedCaptureImages, capturePhase, captureToday, validateCaptureImages } from "../lib/captureUi";
 import IntegrationDialog from "./IntegrationDialog";
+import { defaultEatingTime } from "../lib/foodTimeline";
+import { normalizeCapture } from "../lib/capture";
 
-export default function AiCaptureDialog({ open, onClose, onSuccess, initialDate, targetDomain, title, description, placeholder, label, imageLabel = "Add photos or screenshots", images = true, dated = false, task = false, initialContext = "", onManual }) {
+export default function AiCaptureDialog({ open, onClose, onSuccess, initialDate, targetDomain, title, description, placeholder, label, imageLabel = "Add photos or screenshots", images = true, dated = false, task = false, initialContext = "", onManual, timeZone = "Asia/Kolkata" }) {
   const [text, setText] = useState(""), [date, setDate] = useState(initialDate || captureToday()), [dueDate, setDueDate] = useState("");
   const [files, setFiles] = useState([]), [previews, setPreviews] = useState([]);
   const [busy, setBusy] = useState(false), [error, setError] = useState(""), [saved, setSaved] = useState(null), [organization, setOrganization] = useState(null);
@@ -82,14 +84,19 @@ export default function AiCaptureDialog({ open, onClose, onSuccess, initialDate,
     if (content.length > 4000) { setError("Keep the description and date instructions within 4,000 characters."); return; }
     writing.current = true; setBusy(true); setError(""); const version = sequence.current;
     try {
-      const payload = { text: content || title + " from image", captureDate: date || initialDate || captureToday(), targetDomain };
+      const payload = { text: content || title + " from image", captureDate: date || initialDate || captureToday(), targetDomain, timeZone };
       const previous = requestIntent.current;
       if (!previous || JSON.stringify(previous.payload) !== JSON.stringify(payload) ||
           previous.files.length !== files.length || previous.files.some((file, index) => file !== files[index])) {
-        requestIntent.current = { payload, files: [...files], key: crypto.randomUUID() };
+        const timing = defaultEatingTime(payload.captureDate, timeZone);
+        const foodContext = targetDomain === "FOOD" ? (timing.eatenTime
+          ? `Fallback eatenTime: ${timing.eatenTime}; timeSource: LOGGED_NOW. Explicit eating times in the description override this fallback.\n`
+          : "Eating time is unknown unless stated in the description.\n") : "";
+        requestIntent.current = { payload, savedPayload: { ...payload, text: foodContext + payload.text, capturedAt: new Date().toISOString() }, files: [...files], key: crypto.randomUUID() };
       }
       const intent = requestIntent.current;
-      const result = files.length ? await captureApi.createWithImages(intent.payload, intent.files, intent.key) : await captureApi.create(intent.payload, intent.key);
+      if (normalizeCapture(intent.savedPayload).text.length > 4000) throw new Error("Shorten the description slightly to leave room for its date and time instructions (about 3,700 characters).");
+      const result = files.length ? await captureApi.createWithImages(intent.savedPayload, intent.files, intent.key) : await captureApi.create(intent.savedPayload, intent.key);
       requestIntent.current = null;
       if (version !== sequence.current) return;
       startedAt.current = Date.now(); setSaved(result); setOrganization(null); setPollPaused(false);
@@ -158,7 +165,7 @@ export default function AiCaptureDialog({ open, onClose, onSuccess, initialDate,
         <button className="button button--primary" type="button" disabled={busy} onClick={onClose}>{phase === "complete" ? "Done" : "Keep going"}</button>
       </div>
     </div> : <><div className="capture-entry-options">{provider?.configured === false && <p role="status">{provider.message}</p>}{onManual && <button className="button button--ghost" type="button" disabled={busy} onClick={onManual}>Enter manually instead</button>}</div><form className="capture-form" onSubmit={submit} onKeyDown={event => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); event.currentTarget.requestSubmit(); } }}>
-      <label className="integration-field"><span>{label || "Describe it in your own words"}</span><textarea ref={textInput} className="text-input" rows={4} maxLength={4000} placeholder={placeholder} value={text} onChange={event => { setText(event.target.value); setError(""); }} disabled={busy} /></label>
+      <label className="integration-field"><span>{label || "Describe it in your own words"}</span><textarea ref={textInput} className="text-input" rows={4} maxLength={3700} placeholder={placeholder} value={text} onChange={event => { setText(event.target.value); setError(""); }} disabled={busy} /></label>
       {(dated || task) && <details className="capture-options"><summary>Date and details · optional</summary><div className="capture-date-row">{dated && <label className="integration-field"><span>Date <small>Defaults to the selected day</small></span><input className="text-input" type="date" value={date} onChange={event => setDate(event.target.value)} disabled={busy} /></label>}
         {task && <label className="integration-field"><span>Due date <small>optional</small></span><input className="text-input" type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} disabled={busy} /></label>}</div></details>}
       {images && <section className="capture-attachments" aria-label="Image attachments"><input ref={input} className="sr-only" tabIndex={-1} type="file" accept={acceptedCaptureImages.join(",")} multiple onChange={choose} disabled={busy} />

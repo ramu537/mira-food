@@ -42,9 +42,27 @@ test("daily groups retain the four meal order and their entries", () => {
 
 test("quick payload trims food and preserves unknown macros rather than inventing zeros", () => {
   assert.deepEqual(quickFoodPayload({ name: "  Dosa with chutney ", meal: "DINNER", calories: "410", protein: "", carbs: "", fat: "" }, "2026-09-29"),
-    { name: "Dosa with chutney", meal: "DINNER", calories: 410, protein: null, carbs: null, fat: null, loggedOn: "2026-09-29", nutritionEstimated: true, estimationNote: null });
+    { name: "Dosa with chutney", meal: "DINNER", calories: 410, protein: null, carbs: null, fat: null, loggedOn: "2026-09-29", eatenTime: null, timeSource: "UNKNOWN", nutritionEstimated: true, estimationNote: null });
   assert.throws(() => quickFoodPayload({ name: "Tea", meal: "SNACK", calories: "" }, "2026-09-29"), /Calories/);
   assert.throws(() => quickFoodPayload({ name: "Tea", meal: "SNACK", calories: "40", protein: "1.234" }, "2026-09-29"), /two decimal places/);
+});
+
+test("meal classification is optional and an explicit time is preserved", () => {
+  const value = quickFoodPayload({ name: "Curd", calories: "100", eatenTime: "15:25" }, "2026-09-29");
+  assert.equal(value.meal, null);
+  assert.equal(value.eatenTime, "15:25");
+  assert.equal(value.timeSource, "USER");
+  const captured = foodCapturePayload({ name: "Curd at 3 pm" }, "2026-09-29");
+  assert.doesNotMatch(captured.text, /Fallback meal/);
+  assert.match(captured.text, /No fallback eating time/);
+  assert.throws(() => quickFoodPayload({ name: "Curd", calories: "100", eatenTime: "25:25" }, "2026-09-29"), /valid eating time/);
+});
+
+test("repeat templates retain nutrient provenance without copying yesterday's eating time", () => {
+  const [template] = recentFoodTemplates([{ ...entries[0], eatenTime: "09:30", timeSource: "USER", nutrients: { calcium: { amount: 100, estimated: true } }, foodGroups: ["CALCIUM_RICH"] }]);
+  assert.equal("eatenTime" in template, false);
+  assert.equal("timeSource" in template, false);
+  assert.deepEqual(quickFoodPayload(template, "2026-09-29").nutrients, { calcium: { amount: 100, estimated: true } });
 });
 
 test("reusing food preserves estimate assumptions and measured values can clear them", () => {

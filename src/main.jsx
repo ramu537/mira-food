@@ -6,6 +6,7 @@ import "./styles.css";
 import "./lib/theme";
 import "./intelligence.css";
 import "./refinement.css";
+import "./journal.css";
 
 const router = createBrowserRouter([{ path: "*", element: <App /> }]);
 

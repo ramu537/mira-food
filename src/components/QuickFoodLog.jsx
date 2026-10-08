@@ -1,15 +1,12 @@
-import { ChevronDown, Plus, RotateCcw, Sparkles } from "lucide-react";
+import { Camera, ChevronDown, Clock3, Plus, RotateCcw, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { foodCapturePayload, quickFoodPayload, recentFoodTemplates } from "../lib/dailyFood";
-import { mealTypes } from "../lib/nutrition";
 import { captureApi } from "../api/captures";
 import { capturePhase } from "../lib/captureUi";
 
-const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
-const defaultMeal = hour < 11 ? "BREAKFAST" : hour < 15 ? "LUNCH" : hour < 19 ? "SNACK" : "DINNER";
-const emptyForm = { name: "", calories: "", meal: defaultMeal, protein: "", carbs: "", fat: "", nutritionEstimated: true, estimationNote: "" };
+const emptyForm = { name: "", calories: "", meal: "", eatenTime: "", protein: "", carbs: "", fat: "", nutritionEstimated: true, estimationNote: "" };
 
-export default function QuickFoodLog({ entries, date, busy, onSave, onRefresh }) {
+export default function QuickFoodLog({ entries, date, today, timeZone, busy, onSave, onRefresh, onPhoto }) {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -52,7 +49,7 @@ export default function QuickFoodLog({ entries, date, busy, onSave, onRefresh })
   useEffect(() => { setForm((current) => ({ ...emptyForm, meal: current.meal })); setError(""); }, [date]);
   const update = (key, value) => { setForm((current) => ({ ...current, [key]: value })); setError(""); };
   function reuse(item) {
-    setForm({ name: item.name, meal: item.meal, calories: String(item.calories), protein: String(item.protein ?? ""), carbs: String(item.carbs ?? ""), fat: String(item.fat ?? ""), nutritionEstimated: Boolean(item.nutritionEstimated), estimationNote: item.estimationNote || "" });
+    setForm({ name: item.name, meal: item.meal, eatenTime: "", calories: String(item.calories), protein: String(item.protein ?? ""), carbs: String(item.carbs ?? ""), fat: String(item.fat ?? ""), nutrients: item.nutrients, foodGroups: item.foodGroups, nutritionEstimated: Boolean(item.nutritionEstimated), estimationNote: item.estimationNote || "" });
     setError(""); nameRef.current?.focus();
   }
   async function submit(event) {
@@ -61,13 +58,13 @@ export default function QuickFoodLog({ entries, date, busy, onSave, onRefresh })
     if (!String(form.calories).trim()) {
       if (!form.name.trim()) { setError("Tell us what you ate. Calories are optional."); nameRef.current?.focus(); return; }
       let payload;
-      try { payload = foodCapturePayload(form, date); }
+      try { payload = foodCapturePayload(form, date, timeZone); }
       catch (failure) { setError(failure.message); return; }
-      const signature = JSON.stringify(payload);
-      if (intent.current?.signature !== signature) intent.current = { signature, requestId: crypto.randomUUID() };
+      const signature = JSON.stringify({ form, date, timeZone });
+      if (intent.current?.signature !== signature) intent.current = { signature, requestId: crypto.randomUUID(), payload: { ...payload, capturedAt: new Date().toISOString() } };
       writing.current = true; setCapturing(true); setError("");
       try {
-        const saved = await captureApi.create(payload, intent.current.requestId);
+        const saved = await captureApi.create(intent.current.payload, intent.current.requestId);
         intent.current = null;
         setJobs(current => [...current.filter(job => capturePhase(job.result) !== "complete").slice(-49), { id: saved.id, result: null, started: Date.now(), paused: false, error: "" }]);
         setForm(current => ({ ...emptyForm, meal: current.meal })); setDetailsOpen(false);
@@ -76,12 +73,14 @@ export default function QuickFoodLog({ entries, date, busy, onSave, onRefresh })
       return;
     }
     let payload;
-    try { payload = quickFoodPayload(form, date); }
+    try { payload = quickFoodPayload(form, date, timeZone); }
     catch (failure) { setError(failure.message); return; }
+    const signature = JSON.stringify({ form, date, timeZone });
+    if (intent.current?.signature !== signature) intent.current = { signature, payload };
     writing.current = true;
     try {
-      const saved = await onSave(payload);
-      if (saved) { setForm((current) => ({ ...emptyForm, meal: current.meal })); setDetailsOpen(false); setError(""); nameRef.current?.focus(); }
+      const saved = await onSave(intent.current.payload);
+      if (saved) { intent.current = null; setForm((current) => ({ ...emptyForm, meal: current.meal })); setDetailsOpen(false); setError(""); nameRef.current?.focus(); }
     } catch (failure) { setError(failure.message || "Could not save. Your entry is still here."); }
     finally { writing.current = false; }
   }
@@ -96,16 +95,17 @@ export default function QuickFoodLog({ entries, date, busy, onSave, onRefresh })
     } finally { writing.current = false; setCapturing(false); }
   }
   return <section className="quick-log" aria-labelledby="quick-log-title">
-    <header><div><h2 id="quick-log-title">What did you eat?</h2><p>Just describe it. AI estimates nutrition; no calorie counting needed.</p></div></header>
+    <header><div><h2 id="quick-log-title">Add to your day</h2><p>Describe your food. Mira handles the nutrition.</p></div><span className="quick-log-time"><Clock3 size={14} />{date === today ? "Defaults to now" : "Time optional"}</span></header>
     {provider?.configured === false && <p className="quick-log-capture" role="status">Automatic AI processing is currently unavailable. Your description can still be saved for your connected assistant to process. If you already know the calories, optional manual entry saves directly.</p>}
     <form onSubmit={submit} noValidate onKeyDown={event => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); event.currentTarget.requestSubmit(); } }}>
       <div className="quick-log__main">
-        <label><span>Food & portion</span><input ref={nameRef} maxLength="3000" placeholder="Lunch: 2 rotis, dal and a bowl of curd" value={form.name} onChange={(event) => update("name", event.target.value)} disabled={busy || capturing} /></label>
+        <label><span className="sr-only">What did you eat?</span><input ref={nameRef} maxLength="3000" placeholder="2 rotis, dal and curd at 1:30 pm…" value={form.name} onChange={(event) => update("name", event.target.value)} disabled={busy || capturing} /></label>
+        <button className="quick-photo" type="button" onClick={onPhoto} disabled={busy || capturing} aria-label="Log food from a photo" title="Add a food photo"><Camera size={20} /></button>
         <button className="button button--primary" type="submit" disabled={busy || capturing}>{form.calories ? <Plus size={17} /> : <Sparkles size={17} />}{busy || capturing ? "Saving…" : "Log food"}</button>
       </div>
-      <fieldset className="quick-meals"><legend>Meal</legend>{mealTypes.map((meal) => <button key={meal.value} type="button" disabled={busy || capturing} className={form.meal === meal.value ? "is-selected" : ""} aria-pressed={form.meal === meal.value} onClick={() => update("meal", meal.value)}>{meal.label}</button>)}</fieldset>
-      <button className="quick-details-toggle" type="button" aria-controls="quick-food-details" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((value) => !value)}><ChevronDown size={16} /> Optional nutrition details</button>
+      <button className="quick-details-toggle" type="button" aria-controls="quick-food-details" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((value) => !value)}><ChevronDown size={16} /> Time & nutrition · optional</button>
       <div id="quick-food-details" hidden={!detailsOpen}>
+      {detailsOpen && <label className="quick-time"><span>Eating time · optional</span><input type="time" value={form.eatenTime} onChange={event => update("eatenTime", event.target.value)} disabled={busy || capturing} /><small>{timeZone} · a time in your description takes priority</small></label>}
       {detailsOpen && <label className="quick-calories"><span>Calories · optional, if known</span><span><input type="number" inputMode="numeric" min="1" max="20000" step="1" placeholder="Leave blank for AI" value={form.calories} onChange={(event) => update("calories", event.target.value)} disabled={busy || capturing} /><small>kcal</small></span></label>}
       {detailsOpen && <div className="quick-macros">{[["protein", "Protein"], ["carbs", "Carbs"], ["fat", "Fat"]].map(([key, label]) => <label key={key}><span>{label}</span><span><input type="number" inputMode="decimal" min="0" max="99999.99" step="0.01" placeholder="Unknown" disabled={busy || capturing} value={form[key]} onChange={(event) => update(key, event.target.value)} /><small>g</small></span></label>)}</div>}
       {detailsOpen && <label className="food-estimate-toggle"><input type="checkbox" disabled={busy || capturing} checked={form.nutritionEstimated} onChange={(event) => update("nutritionEstimated", event.target.checked)} /><span>Nutrition or portion is estimated</span></label>}

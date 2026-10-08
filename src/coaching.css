@@ -41,7 +41,7 @@
 .assistant-window:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 3px; }
 .assistant-window__header {
   display: flex; align-items: center; gap: 0.7rem; flex: 0 0 auto; padding: 0.95rem 1rem;
-  border-bottom: 1px solid var(--coach-border); background: linear-gradient(115deg, var(--accent-soft), var(--coach-surface) 65%);
+  border-bottom: 1px solid var(--coach-border); background: var(--coach-surface);
 }
 .assistant-window__header > div:not(.assistant-window__actions) { min-width: 0; }
 .assistant-window__header h2 { margin: 0; font: inherit; font-size: 0.95rem; font-weight: 760; letter-spacing: -0.02em; }

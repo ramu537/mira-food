@@ -95,6 +95,8 @@ export default function App() {
 function FoodWorkspace({ user, onLogout }) {
   const manager = useFoodManager(user);
   const waterWriteLock = useRef(false);
+  const foodWriteLock = useRef(false);
+  const foodWriteIntent = useRef(null);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [intelligenceOpen, setIntelligenceOpen] = useState(false);
@@ -152,10 +154,16 @@ function FoodWorkspace({ user, onLogout }) {
   }
 
   async function saveEntry(payload) {
+    if (foodWriteLock.current) return false;
+    const entryId = editingEntry?.id || null;
+    const signature = JSON.stringify({ owner: user.uid, entryId, payload });
+    if (foodWriteIntent.current?.signature !== signature) foodWriteIntent.current = { signature, requestId: crypto.randomUUID() };
+    foodWriteLock.current = true;
     setSaveError("");
     setSaving(true);
     try {
-      await manager.actions.saveEntry(payload, editingEntry?.id);
+      await manager.actions.saveEntry(payload, entryId, foodWriteIntent.current.requestId);
+      foodWriteIntent.current = null;
       setToast({ tone: "success", message: editingEntry ? "Food entry updated." : "Food logged." });
       setEntryDialogOpen(false);
       setEditingEntry(null);
@@ -167,6 +175,7 @@ function FoodWorkspace({ user, onLogout }) {
       setToast({ tone: "error", message: error.message });
       return false;
     } finally {
+      foodWriteLock.current = false;
       setSaving(false);
     }
   }
@@ -221,7 +230,7 @@ function FoodWorkspace({ user, onLogout }) {
   else content = (
     <Routes>
       <Route path="/" element={<DailyLogPage key={user.uid} manager={manager} deleteError={deleteError} deletingId={deletingId} quickSaving={saving} waterSaving={waterSaving} onAdd={openCreate} onQuickSave={saveEntry} onEdit={openEdit} onDelete={deleteEntry} onWaterChange={changeWater} />} />
-      <Route path="/trends" element={<TrendsPage entries={manager.entries} goal={manager.goal} today={manager.today} />} />
+      <Route path="/trends" element={<TrendsPage entries={manager.entries} goal={manager.goal} targetsConfigured={manager.analysis?.targetsConfigured === true} today={manager.today} />} />
       <Route path="/settings" element={<FoodSettingsPage onSave={manager.actions.saveProfile} onEditTargets={() => { setSaveError(""); setGoalDialogOpen(true); }} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -241,7 +250,7 @@ function FoodWorkspace({ user, onLogout }) {
         {manager.ready && manager.loadError && <div className="food-refresh-warning" role="alert"><p>Food records could not be refreshed. The log and trends may be out of date.</p><button className="button button--secondary" type="button" disabled={manager.loading} onClick={manager.retry}>{manager.loading ? "Refreshing…" : "Refresh records"}</button></div>}
         {content}
       </AppShell>
-      <FoodEntryDialog open={entryDialogOpen} entry={editingEntry} date={initialDate || manager.selectedDate} initialMeal={initialMeal} earliestDate={manager.earliestDate} today={manager.today} busy={saving} error={saveError} onClose={closeEntryDialog} onSave={saveEntry} />
+      <FoodEntryDialog open={entryDialogOpen} entry={editingEntry} date={initialDate || manager.selectedDate} initialMeal={initialMeal} earliestDate={manager.earliestDate} today={manager.today} timeZone={manager.timeZone} busy={saving} error={saveError} onClose={closeEntryDialog} onSave={saveEntry} />
       <GoalDialog open={goalDialogOpen} goal={manager.goal} busy={saving} error={saveError} onClose={() => { if (!saving) setGoalDialogOpen(false); }} onSave={saveGoal} />
       <FoodIntelligenceDialog userId={user.uid} open={intelligenceOpen} manager={manager} onClose={() => setIntelligenceOpen(false)} />
       <AiFoodCaptureModal
@@ -250,6 +259,7 @@ function FoodWorkspace({ user, onLogout }) {
         open={aiCaptureOpen}
         initialDate={initialDate || manager.selectedDate}
         initialMeal={initialMeal}
+        timeZone={manager.timeZone}
         onClose={() => setAiCaptureOpen(false)}
         onSuccess={(msg) => {
           manager.retry();

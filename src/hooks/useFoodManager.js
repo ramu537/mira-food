@@ -128,8 +128,8 @@ export function useFoodManager(user = null) {
     }
   }
   const actions = {
-    saveEntry: (payload, id = null) => write(
-      () => id ? foodApi.updateEntry(id, payload) : foodApi.createEntry(payload),
+    saveEntry: (payload, id = null, requestId) => write(
+      () => id ? foodApi.updateEntry(id, payload, requestId) : foodApi.createEntry(payload, requestId),
       (saved) => setEntries((current) => [...current.filter((entry) => entry.id !== saved.id), saved])),
     deleteEntry: (id) => write(() => foodApi.removeEntry(id), () => setEntries((current) => current.filter((entry) => entry.id !== id))),
     saveGoal: (payload) => write(() => foodApi.updateGoal(payload), setGoal),
@@ -147,7 +147,7 @@ export function useFoodManager(user = null) {
   };
   function selectDate(date) { setSelectedDate(date < earliestDate ? earliestDate : date > today ? today : date); }
   return {
-    today, earliestDate, selectedDate, selectDate, entries: owner === uid ? entries : [], goal, water: owner === uid ? waterByDate[selectedDate] || 0 : 0,
+    today, earliestDate, timeZone: zone, selectedDate, selectDate, entries: owner === uid ? entries : [], goal, water: owner === uid ? waterByDate[selectedDate] || 0 : 0,
     loading, ready: ready && owner === uid, loadError, retry: load, actions,
     analysis: owner === uid && analysis?.date === selectedDate ? analysis : null,
     analysisLoading, analysisError, analysisStale,

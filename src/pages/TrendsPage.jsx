@@ -14,9 +14,9 @@ function Metric({ icon: Icon, label, value, detail, tone = "default" }) {
   );
 }
 
-export default function TrendsPage({ entries, goal, today }) {
+export default function TrendsPage({ entries, goal, targetsConfigured = false, today }) {
   const trends = useMemo(() => trendSummary(entries, today, goal), [entries, goal, today]);
-  const chartMax = Math.max(goal.calories, ...trends.series.map((day) => day.calories), 1);
+  const chartMax = Math.max(targetsConfigured ? goal.calories : 0, ...trends.series.map((day) => day.calories), 1);
   const energy = macroEnergy(trends.knownTotals);
   const coverageTone = trends.loggedDays >= 10 ? "positive" : trends.loggedDays >= 5 ? "warning" : "default";
 
@@ -27,7 +27,7 @@ export default function TrendsPage({ entries, goal, today }) {
           <span className="eyebrow">Patterns, not perfection</span>
           <h1>Nutrition trends</h1>
           <p>Your latest 14 days. Missing days stay visible instead of being counted as zero.</p>
-          <p>Targets are your saved references or starter values, not personalised medical recommendations.</p>
+          <p>{targetsConfigured ? "Your saved targets are optional references, not medical recommendations." : "No targets required. These patterns describe your recorded food, not your complete intake."}</p>
         </div>
       </header>
 
@@ -35,23 +35,23 @@ export default function TrendsPage({ entries, goal, today }) {
         <Metric icon={Flame} label="Average calories" value={trends.loggedDays ? `${trends.averageCalories.toLocaleString("en-IN")} kcal` : "—"} detail="per logged day · not full intake" />
         <Metric icon={CalendarCheck2} label="Days logged" value={`${trends.loggedDays} / 14`} detail="honest coverage" tone={coverageTone} />
         <Metric icon={Drumstick} label="Known protein average" value={trends.averageProtein == null ? "—" : `${formatMacro(trends.averageProtein)} g`} detail={`${trends.proteinKnownDays} days with protein values · partial days remain partial`} />
-        <Metric icon={UtensilsCrossed} label="Food entries" value={trends.totalEntries.toLocaleString("en-IN")} detail={`${trends.overTarget} days above target`} />
+        <Metric icon={UtensilsCrossed} label="Food entries" value={trends.totalEntries.toLocaleString("en-IN")} detail={targetsConfigured ? `${trends.overTarget} days above your reference` : "recorded across the last 14 days"} />
       </section>
 
       <section className="panel calorie-trend-card">
         <header className="panel-header">
           <div><span className="eyebrow">Calories</span><h2>Last 14 days</h2></div>
-          <div className="chart-legend"><span><i className="legend-bar" />Logged</span><span><i className="legend-line" />Target</span></div>
+          <div className="chart-legend"><span><i className="legend-bar" />Logged</span>{targetsConfigured && <span><i className="legend-line" />Your reference</span>}</div>
         </header>
 
-        <div className="calorie-chart" style={{ "--target-position": `${(goal.calories / chartMax) * 100}%` }} role="img" aria-label={`${trends.loggedDays} of 14 days logged. Average ${trends.averageCalories} calories on logged days. ${trends.overTarget} days above target.`}>
-          <span className="target-line"><span>{goal.calories.toLocaleString("en-IN")}</span></span>
+        <div className="calorie-chart" style={{ "--target-position": `${(goal.calories / chartMax) * 100}%` }} role="img" aria-label={`${trends.loggedDays} of 14 days logged. Average ${trends.averageCalories} calories on logged days.${targetsConfigured ? ` ${trends.overTarget} days above your reference.` : " No personal reference configured."}`}>
+          {targetsConfigured && <span className="target-line"><span>{goal.calories.toLocaleString("en-IN")}</span></span>}
           {trends.series.map((day) => {
             const height = day.calories ? Math.max(6, (day.calories / chartMax) * 100) : 2;
             return (
               <div className="calorie-column" key={day.date}>
                 <span className="calorie-column__value">{day.calories ? compact(day.calories) : ""}</span>
-                <span className={day.calories ? day.calories > goal.calories ? "calorie-bar is-over" : "calorie-bar" : "calorie-bar is-missing"} style={{ height: `${height}%` }} />
+                <span className={day.calories ? targetsConfigured && day.calories > goal.calories ? "calorie-bar is-over" : "calorie-bar" : "calorie-bar is-missing"} style={{ height: `${height}%` }} />
                 <small>{new Intl.DateTimeFormat("en", { weekday: "short" }).format(new Date(`${day.date}T12:00:00`)).slice(0, 1)}</small>
               </div>
             );
@@ -63,8 +63,8 @@ export default function TrendsPage({ entries, goal, today }) {
         <details className="chart-data">
           <summary>View chart data</summary>
           <table>
-            <thead><tr><th>Date</th><th>Calories</th><th>Compared with target</th></tr></thead>
-            <tbody>{trends.series.map((day) => <tr key={day.date}><td>{shortDate(day.date)}</td><td>{day.calories ? `${day.calories.toLocaleString("en-IN")} kcal` : "Not logged"}</td><td>{!day.calories ? "Missing" : day.calories > goal.calories ? "Above" : "At or below"}</td></tr>)}</tbody>
+            <thead><tr><th>Date</th><th>Calories</th>{targetsConfigured && <th>Compared with your reference</th>}</tr></thead>
+            <tbody>{trends.series.map((day) => <tr key={day.date}><td>{shortDate(day.date)}</td><td>{day.calories ? `${day.calories.toLocaleString("en-IN")} kcal` : "Not logged"}</td>{targetsConfigured && <td>{!day.calories ? "Missing" : day.calories > goal.calories ? "Above" : "At or below"}</td>}</tr>)}</tbody>
           </table>
         </details>
       </section>

@@ -12,7 +12,7 @@
   .quick-log-capture { margin-top: 0.85rem; padding: 0.85rem; border: 1px solid var(--ui-line); border-radius: var(--radius-sm); background: var(--ui-soft); color: var(--ui-text); font-size: 0.85rem; }
   .quick-log-capture small { color: var(--ui-muted); }
   .quick-log-capture .button { margin-top: 0.6rem; }
- :root { --ui-product-hue: 105; } }
+ :root { --ui-product-hue: 250; --ui-accent-hue: 174; } }
 /* Product-wide finish. This layer follows each application's existing component layers. */
 @layer refinement {
   :root {
@@ -26,8 +26,15 @@
     --ui-line: oklch(0.85 0.011 var(--ui-product-hue));
     --ui-line-soft: oklch(0.915 0.009 var(--ui-product-hue));
     --ui-glass: oklch(0.995 0.003 var(--ui-product-hue) / 94%);
-    --ui-action: oklch(0.34 0.07 var(--ui-product-hue));
-    --ui-action-ink: oklch(0.99 0.002 var(--ui-product-hue));
+    --ui-action: oklch(0.39 0.075 var(--ui-accent-hue));
+    --ui-action-ink: oklch(0.99 0.002 var(--ui-accent-hue));
+    --accent: oklch(0.51 0.105 var(--ui-accent-hue));
+    --accent-strong: oklch(0.40 0.085 var(--ui-accent-hue));
+    --accent-soft: oklch(0.95 0.024 var(--ui-accent-hue));
+    --surface-inverse: var(--ui-action);
+    --text-inverse: var(--ui-action-ink);
+    --focus: var(--accent-strong);
+    --shadow-accent: var(--shadow-sm);
     --ui-focus: var(--accent-strong);
     --ui-danger: oklch(0.53 0.19 27);
     --ui-danger-soft: oklch(0.96 0.025 27);
@@ -79,8 +86,11 @@
     --ui-line: oklch(0.39 0.018 var(--ui-product-hue));
     --ui-line-soft: oklch(0.315 0.015 var(--ui-product-hue));
     --ui-glass: oklch(0.215 0.014 var(--ui-product-hue) / 94%);
-    --ui-action: oklch(0.84 0.085 var(--ui-product-hue));
-    --ui-action-ink: oklch(0.19 0.028 var(--ui-product-hue));
+    --ui-action: oklch(0.81 0.095 var(--ui-accent-hue));
+    --ui-action-ink: oklch(0.20 0.026 var(--ui-accent-hue));
+    --accent: oklch(0.81 0.095 var(--ui-accent-hue));
+    --accent-strong: oklch(0.83 0.09 var(--ui-accent-hue));
+    --accent-soft: oklch(0.28 0.035 var(--ui-accent-hue));
     --ui-danger: oklch(0.78 0.14 27);
     --ui-danger-soft: oklch(0.27 0.045 27);
     --ui-overlay: oklch(0.07 0.008 var(--ui-product-hue) / 65%);

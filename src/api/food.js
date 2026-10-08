@@ -17,13 +17,14 @@ export const foodApi = {
   listEntries(start, end) {
     return apiRequest(`/food/entries?${new URLSearchParams({ start, end })}`);
   },
-  createEntry(entry) {
-    return apiRequest("/food/entries", { method: "POST", body: JSON.stringify(entry) });
+  createEntry(entry, requestId) {
+    return apiRequest("/food/entries", { method: "POST", body: JSON.stringify(entry), ...(requestId ? { headers: { "Idempotency-Key": requestId } } : {}) });
   },
-  updateEntry(id, entry) {
+  updateEntry(id, entry, requestId) {
     return apiRequest(`/food/entries/${encodeURIComponent(id)}`, {
       method: "PUT",
       body: JSON.stringify(entry),
+      ...(requestId ? { headers: { "Idempotency-Key": requestId } } : {}),
     });
   },
   removeEntry(id) {
